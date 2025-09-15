@@ -441,7 +441,7 @@ function startTitleEdit(){
 
 // ======== Auth Redirect Helper (GitHub Pages base) ========
 // Paksa magic link selalu redirect ke GitHub Pages (bukan localhost)
-const APP_BASE_URL = 'https://ferky36.github.io/mix-americano';
+const APP_BASE_URL = 'https://ferky36.github.io/scoremate';
 function getAuthRedirectURL(){
   return APP_BASE_URL + (location.search || '');
 }
@@ -4958,6 +4958,7 @@ byId('btnLogout')?.addEventListener('click', async ()=>{
   try{ await sb.auth.signOut(); }catch{}
   location.reload();
 });
+
 
 
 
