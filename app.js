@@ -2559,6 +2559,55 @@ function replaceNameInRounds(oldName, newName){
   });
 }
 
+// === Americano 32-point: Rotasi Servis + Badge di Score Modal =======
+function __getOrder4(round){
+  return [round?.a1 ?? '', round?.a2 ?? '', round?.b1 ?? '', round?.b2 ?? ''];
+}
+function __normOffset(round){
+  let off = Number(round?.server_offset ?? 0);
+  if (!Number.isInteger(off) || off < 0) off = 0;
+  round.server_offset = off % 4; // 0:a1, 1:a2, 2:b1, 3:b2
+  return round.server_offset;
+}
+// point 1..∞ -> index server 0..3 (pindah tiap 2 poin)
+function serverIndexForPoint(point, server_offset){
+  const grp = Math.floor((Math.max(1, point) - 1) / 2);
+  return (grp + (server_offset || 0)) % 4;
+}
+// Ambil info server untuk poin tertentu
+function getServerForPoint(round, point){
+  const idx = serverIndexForPoint(point, __normOffset(round));
+  const order = __getOrder4(round);
+  const name = order[idx] || '';
+  const team = (idx < 2) ? 'A' : 'B';
+  const slot = (idx === 0) ? 'a1' : (idx === 1) ? 'a2' : (idx === 2) ? 'b1' : 'b2';
+  return { name, idx, team, slot };
+}
+
+// Tampilkan 🎾 di nama yang sedang serve pada scoreModal
+function renderServeBadgeInModal(){
+  try{
+    const r = (roundsByCourt[scoreCtx.court] || [])[scoreCtx.round] || {};
+    if (!r) return;
+
+    const total = Number(scoreCtx.a || 0) + Number(scoreCtx.b || 0);
+    const point = Math.min(32, Math.max(1, total + 1)); // next rally
+    const sv = getServerForPoint(r, point);
+    const ball = '<span class="serve-badge" title="Server" aria-label="Server">🎾</span>';
+
+    function nm(name, slot){
+      const safe = escapeHtml(name || '-');
+      return (sv && sv.slot === slot) ? (safe + ' ' + ball) : safe;
+    }
+
+    const aEl = byId('scoreTeamA');
+    const bEl = byId('scoreTeamB');
+    if (aEl) aEl.innerHTML = nm(r.a1,'a1') + ' & ' + nm(r.a2,'a2');
+    if (bEl) bEl.innerHTML = nm(r.b1,'b1') + ' & ' + nm(r.b2,'b2');
+  }catch{}
+}
+
+
 // ===== Rename helpers (robust mapping for multi-rename) =====
 function _normName(s){ return String(s||'').trim().toLowerCase(); }
 function _lev(a,b){
@@ -3803,6 +3852,7 @@ function openScoreModal(courtIdx, roundIdx){
   byId('scoreRoundTitle').textContent = `Lap ${courtIdx+1} • Match ${roundIdx+1}`;
   byId('scoreAVal').textContent = scoreCtx.a;
   byId('scoreBVal').textContent = scoreCtx.b;
+  renderServeBadgeInModal();
 
     const ready = r.a1 && r.a2 && r.b1 && r.b2;
   if (!ready){ alert('Pemain di ronde ini belum lengkap. Lengkapi dulu ya.'); return; }
@@ -4045,6 +4095,7 @@ function commitScoreToRound(auto=false){
 function updateScoreDisplay(){
   byId('scoreAVal').textContent = scoreCtx.a;
   byId('scoreBVal').textContent = scoreCtx.b;
+  renderServeBadgeInModal();
 
   // Sinkronkan skor ke state ronde yang sedang dibuka agar tabel match ikut terupdate
   try{
