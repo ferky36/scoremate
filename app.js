@@ -2589,33 +2589,38 @@ function renderServeBadgeInModal(){
     const r = (roundsByCourt[scoreCtx.court] || [])[scoreCtx.round] || {};
     if (!r) return;
 
-    // Hitung poin ke-berapa (next rally) -> tentukan siapa server
+    // tentukan server untuk rally berikutnya (format 32 poin, pindah tiap 2 poin)
     const total = Number(scoreCtx.a || 0) + Number(scoreCtx.b || 0);
     const point = Math.min(32, Math.max(1, total + 1));
-    const sv = getServerForPoint(r, point); // {name, team, slot}
+    const sv = getServerForPoint(r, point); // {slot: 'a1'|'a2'|'b1'|'b2'}
 
-    // Chip hijau + ikon bola (SVG)
-    const chip = `
-      <span class="serve-chip" title="Sedang servis" aria-label="Sedang servis">
-        <svg class="serve-ball" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="9"></circle>
-          <path d="M4.5 9.5c3.2-.9 6 0 7.9 1.9 1.9 1.9 2.8 4.7 1.9 7.9" />
-          <path d="M19.5 14.5c-3.2.9-6 0-7.9-1.9-1.9-1.9-2.8-4.7-1.9-7.9" />
-        </svg>
-        <span class="serve-text">Serve</span>
-      </span>`;
-
-    function nm(name, slot){
+    // builder chip: ikon bola + NAMA di dalamnya
+    const chipName = (name) => {
       const safe = escapeHtml(name || '-');
-      return (sv && sv.slot === slot) ? (safe + ' ' + chip) : safe;
+      return `
+        <span class="serve-chip serve-chip--name" title="Sedang servis" aria-label="Sedang servis">
+          <svg class="serve-ball" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M4.5 9.5c3.2-.9 6 0 7.9 1.9 1.9 1.9 2.8 4.7 1.9 7.9"/>
+            <path d="M19.5 14.5c-3.2.9-6 0-7.9-1.9-1.9-1.9-2.8-4.7-1.9-7.9"/>
+          </svg>
+          <span class="serve-text">${safe}</span>
+        </span>`;
+    };
+
+    // jika slot ini yang serve → tampilkan chip berisi namanya
+    function renderName(name, slot){
+      const safe = escapeHtml(name || '-');
+      return (sv && sv.slot === slot) ? chipName(name) : safe;
     }
 
     const aEl = byId('scoreTeamA');
     const bEl = byId('scoreTeamB');
-    if (aEl) aEl.innerHTML = nm(r.a1,'a1') + ' & ' + nm(r.a2,'a2');
-    if (bEl) bEl.innerHTML = nm(r.b1,'b1') + ' & ' + nm(r.b2,'b2');
+    if (aEl) aEl.innerHTML = renderName(r.a1,'a1') + ' & ' + renderName(r.a2,'a2');
+    if (bEl) bEl.innerHTML = renderName(r.b1,'b1') + ' & ' + renderName(r.b2,'b2');
   }catch{}
 }
+
 
 
 
