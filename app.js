@@ -1280,6 +1280,22 @@ let scoreCtx = {
   running: false      // ⬅️ baru
 };
 
+// === Paid flag (playerMeta) =========================================
+function isPlayerPaid(name){
+  try { return !!(playerMeta && playerMeta[name] && playerMeta[name].paid); } catch { return false; }
+}
+function setPlayerPaid(name, val){
+  if (!name) return;
+  if (!playerMeta || typeof playerMeta !== 'object') window.playerMeta = {};
+  playerMeta[name] = playerMeta[name] || {};
+  playerMeta[name].paid = !!val;
+  markDirty?.();
+  try { renderPlayersList?.(); renderViewerPlayersList?.(); refreshJoinUI?.(); } catch {}
+  try { maybeAutoSaveCloud?.(true); } catch {}
+}
+function togglePlayerPaid(name){ setPlayerPaid(name, !isPlayerPaid(name)); }
+
+
 // ================== Access Control ================== //
 // role: 'editor' (full access) | 'viewer' (read-only)
 let accessRole = 'editor';
@@ -1972,7 +1988,26 @@ function renderPlayersList() {
       const nameSpan = li.querySelector('.player-name');
       const delBtn   = li.querySelector('.del');
       if (isViewer()) delBtn.style.display = 'none';
-      nameSpan.after(gSel, lSel);
+      // Tombol toggle "Paid" (khusus editor)
+      const pBtn = document.createElement('button');
+      function _refreshPaidBtn(){
+        const paid = isPlayerPaid(name);
+        pBtn.className = 'px-2 py-0.5 text-xs rounded border flex items-center gap-1 ' +
+                        (paid ? 'bg-emerald-600 text-white border-emerald-600'
+                              : 'bg-transparent border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300');
+        pBtn.title = paid ? 'Tandai belum bayar' : 'Tandai sudah bayar';
+        pBtn.innerHTML = (paid ? '✓ ' : '') + 'Paid';
+      }
+      pBtn.addEventListener('click', () => {
+        if (isViewer()) return;              // safety
+        togglePlayerPaid(name);
+        _refreshPaidBtn();
+      });
+      if (isViewer()) pBtn.style.display = 'none';
+      _refreshPaidBtn();
+
+      nameSpan.after(gSel, lSel, pBtn);
+
 
     li.querySelector(".del").addEventListener("click", () => {
       if (!confirm("Hapus " + name + "?")) return;
@@ -2165,7 +2200,11 @@ function renderViewerPlayersList(){
   ul.innerHTML = '';
   (players || []).forEach((name) => {
     const li = document.createElement('li');
-    li.className = 'flex items-center gap-2 px-3 py-2 rounded-lg border bg-white dark:bg-gray-900 dark:border-gray-700';
+    const paid = isPlayerPaid(name);
+    li.className = 'flex items-center gap-2 px-3 py-2 rounded-lg border ' +
+    (paid
+      ? 'bg-emerald-50 border-emerald-300 dark:bg-emerald-900/20 dark:border-emerald-500'
+      : 'bg-white dark:bg-gray-900 dark:border-gray-700');
     const meta = (playerMeta && playerMeta[name]) ? playerMeta[name] : {};
     const g = meta.gender || '';
     const lv = meta.level || '';
