@@ -2307,66 +2307,102 @@ async function loadLocationFromDB(){
 }
 
 function ensureJoinOpenFields(){
-  let wrap = byId('joinOpenWrap');
-  if (wrap) return wrap;
+  // --- cari anchor lokasi dengan beberapa kemungkinan id/selector ---
+  const findAnchor = () =>
+    byId('locationTextInput') ||
+    byId('locationInput') ||
+    document.querySelector('[data-role="location"], input[name="location"], input[placeholder*="Lokasi"], input[placeholder*="Lapangan"]');
 
-  // target: letakkan sebagai "sodara" dari blok Lokasi, bukan di dalamnya
-  const locInput = byId('locationTextInput');
-  if (!locInput) return null;
+  let anchor = findAnchor();
+  if (!anchor) {
+    // Anchor belum ada (UI editor belum dirender). Pantau sampai muncul.
+    if (!window.__joinOpenAnchorObserver) {
+      window.__joinOpenAnchorObserver = new MutationObserver(() => {
+        const a = findAnchor();
+        if (a) {
+          try { window.__joinOpenAnchorObserver.disconnect(); }catch{}
+          window.__joinOpenAnchorObserver = null;
+          ensureJoinOpenFields();
+        }
+      });
+      try { window.__joinOpenAnchorObserver.observe(document.body, { childList: true, subtree: true }); } catch {}
+    }
+    return null;
+  }
 
-  // Cari wadah grid baris konfigurasi (supaya ikut kolom yang sama)
+  // --- tentukan parent grid yang tepat agar rapi di desktop/mobile ---
   const gridParent =
-    locInput.closest('.grid') ||
-    locInput.parentElement?.parentElement || // fallback umum
-    locInput.parentElement;                  // fallback terakhir
+    anchor.closest('[data-settings-grid], .settings-grid, .grid, .grid-cols-12') ||
+    anchor.parentElement?.closest('.grid, .grid-cols-12') ||
+    anchor.parentElement?.parentElement ||
+    anchor.parentElement;
 
   if (!gridParent) return null;
 
-  // 1 kolom penuh di mobile, sebagian kolom di layar besar (ikut pola grid yg lain)
-  wrap = document.createElement('div');
-  wrap.id = 'joinOpenWrap';
-  wrap.className = 'col-span-12 md:col-span-6 lg:col-span-4 xl:col-span-3';
+  // --- buat / ambil wrap komponen ---
+  let wrap = byId('joinOpenWrap');
+  const creating = !wrap;
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'joinOpenWrap';
+    wrap.className = 'col-span-12 md:col-span-6 lg:col-span-4 xl:col-span-3';
+    wrap.innerHTML = `
+      <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-600 dark:text-gray-300 mb-1">
+        Buka Join
+      </label>
+      <div class="join-open-row">
+        <input id="joinOpenDateInput" type="date"  class="join-open-input" />
+        <input id="joinOpenTimeInput" type="time"  class="join-open-input" step="60" />
+      </div>
+    `;
+  }
 
-  // Label + 2 input (tanggal & jam) dalam satu baris yang rapi
-  wrap.innerHTML = `
-    <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-600 dark:text-gray-300 mb-1">
-      Buka Join
-    </label>
-    <div class="join-open-row">
-      <input id="joinOpenDateInput" type="date" class="join-open-input" />
-      <input id="joinOpenTimeInput" type="time" class="join-open-input" step="60" />
-    </div>
-  `;
+  // sisip sebagai saudara komponen Lokasi (di grid yang sama)
+  if (creating || !wrap.parentNode) gridParent.appendChild(wrap);
 
-  gridParent.appendChild(wrap);
+  // set nilai awal dari state
+  const di = byId('joinOpenDateInput');
+  const ti = byId('joinOpenTimeInput');
+  if (di) di.value = toLocalDateValue(window.joinOpenAt);
+  if (ti) ti.value = toLocalTimeValue(window.joinOpenAt);
 
-  // nilai awal dari state
-  byId('joinOpenDateInput').value = toLocalDateValue(window.joinOpenAt);
-  byId('joinOpenTimeInput').value = toLocalTimeValue(window.joinOpenAt);
+  // pasang handler SEKALI (hindari duplikasi)
+  if (!wrap.__bound) {
+    const onChange = async () => {
+      const d = di?.value || '';
+      const t = ti?.value || '';
+      window.joinOpenAt = combineDateTimeToISO(d, t);
+      scheduleJoinOpenTimer();
+      try {
+        if (currentEventId && window.sb) {
+          await sb.from('events').update({ join_open_at: window.joinOpenAt }).eq('id', currentEventId);
+          showToast?.('Waktu buka join disimpan', 'success');
+        }
+      } catch (e) { console.warn(e); showToast?.('Gagal menyimpan waktu buka join', 'error'); }
+      try { refreshJoinUI?.(); } catch {}
+    };
+    di && di.addEventListener('change', onChange);
+    ti && ti.addEventListener('change', onChange);
+    wrap.__bound = true;
+  }
 
-  // simpan saat berubah
-  const onChange = async () => {
-    const d = byId('joinOpenDateInput').value;
-    const t = byId('joinOpenTimeInput').value;
-    window.joinOpenAt = combineDateTimeToISO(d, t);
-    scheduleJoinOpenTimer();
-    try {
-      if (currentEventId && window.sb) {
-        await sb.from('events').update({ join_open_at: window.joinOpenAt }).eq('id', currentEventId);
-        showToast?.('Waktu buka join disimpan', 'success');
+  // jika nanti wrap dibuang karena re-render, sisipkan ulang otomatis
+  if (!window.__joinOpenReinsertObserver) {
+    window.__joinOpenReinsertObserver = new MutationObserver(() => {
+      const stillThere = byId('joinOpenWrap');
+      const nowAnchor  = findAnchor();
+      if (!stillThere && nowAnchor) {
+        try { window.__joinOpenReinsertObserver.disconnect(); }catch{}
+        window.__joinOpenReinsertObserver = null;
+        ensureJoinOpenFields();
       }
-    } catch (e) {
-      console.warn(e);
-      showToast?.('Gagal menyimpan waktu buka join', 'error');
-    }
-    try { refreshJoinUI?.(); } catch {}
-  };
-
-  byId('joinOpenDateInput')?.addEventListener('change', onChange);
-  byId('joinOpenTimeInput')?.addEventListener('change', onChange);
+    });
+    try { window.__joinOpenReinsertObserver.observe(gridParent, { childList: true }); } catch {}
+  }
 
   return wrap;
 }
+
 
 
 async function loadJoinOpenFromDB(){
