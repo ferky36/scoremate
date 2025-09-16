@@ -2584,20 +2584,30 @@ function getServerForPoint(round, point){
   return { name, idx, team, slot };
 }
 
-// Tampilkan 🎾 di nama yang sedang serve pada scoreModal
 function renderServeBadgeInModal(){
   try{
     const r = (roundsByCourt[scoreCtx.court] || [])[scoreCtx.round] || {};
     if (!r) return;
 
+    // Hitung poin ke-berapa (next rally) -> tentukan siapa server
     const total = Number(scoreCtx.a || 0) + Number(scoreCtx.b || 0);
-    const point = Math.min(32, Math.max(1, total + 1)); // next rally
-    const sv = getServerForPoint(r, point);
-    const ball = '<span class="serve-badge" title="Server" aria-label="Server">🎾</span>';
+    const point = Math.min(32, Math.max(1, total + 1));
+    const sv = getServerForPoint(r, point); // {name, team, slot}
+
+    // Chip hijau + ikon bola (SVG)
+    const chip = `
+      <span class="serve-chip" title="Sedang servis" aria-label="Sedang servis">
+        <svg class="serve-ball" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M4.5 9.5c3.2-.9 6 0 7.9 1.9 1.9 1.9 2.8 4.7 1.9 7.9" />
+          <path d="M19.5 14.5c-3.2.9-6 0-7.9-1.9-1.9-1.9-2.8-4.7-1.9-7.9" />
+        </svg>
+        <span class="serve-text">Serve</span>
+      </span>`;
 
     function nm(name, slot){
       const safe = escapeHtml(name || '-');
-      return (sv && sv.slot === slot) ? (safe + ' ' + ball) : safe;
+      return (sv && sv.slot === slot) ? (safe + ' ' + chip) : safe;
     }
 
     const aEl = byId('scoreTeamA');
@@ -2606,6 +2616,7 @@ function renderServeBadgeInModal(){
     if (bEl) bEl.innerHTML = nm(r.b1,'b1') + ' & ' + nm(r.b2,'b2');
   }catch{}
 }
+
 
 
 // ===== Rename helpers (robust mapping for multi-rename) =====
