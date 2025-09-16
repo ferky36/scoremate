@@ -475,7 +475,7 @@ function startTitleEdit(){
 
 // ======== Auth Redirect Helper (GitHub Pages base) ========
 // Paksa magic link selalu redirect ke GitHub Pages (bukan localhost)
-const APP_BASE_URL = 'https://ferky36.github.io/mix-americano';
+const APP_BASE_URL = 'https://ferky36.github.io/scoremate';
 function getAuthRedirectURL(){
   return APP_BASE_URL + (location.search || '');
 }
@@ -833,18 +833,19 @@ async function refreshJoinUI(){
       joinBtn && joinBtn.classList.remove('hidden');
     }
   }catch{}
-  try{
-    const joinBtn = byId('btnJoinEvent') || byId('joinSubmitBtn');
-    const nameInp = byId('joinNameInput');
-    const open = isJoinOpen();
-    if (joinBtn) {
-      joinBtn.disabled = !open;
-      joinBtn.title = (!open && window.joinOpenAt)
-        ? ('Pendaftaran dibuka: '+toLocalDateValue(window.joinOpenAt)+' '+toLocalTimeValue(window.joinOpenAt))
-        : '';
-    }
-    if (nameInp) nameInp.disabled = !open;
-  } catch {}
+  // UNTUK BONUS: disable tombol Join jika belum waktunya buka pendaftaran
+  // try{
+  //   const joinBtn = byId('btnJoinEvent') || byId('joinSubmitBtn');
+  //   const nameInp = byId('joinNameInput');
+  //   const open = isJoinOpen();
+  //   if (joinBtn) {
+  //     joinBtn.disabled = !open;
+  //     joinBtn.title = (!open && window.joinOpenAt)
+  //       ? ('Pendaftaran dibuka: '+toLocalDateValue(window.joinOpenAt)+' '+toLocalTimeValue(window.joinOpenAt))
+  //       : '';
+  //   }
+  //   if (nameInp) nameInp.disabled = !open;
+  // } catch {}
 
 }
 // Fetch role from Supabase based on current user and event membership
@@ -2308,18 +2309,36 @@ async function loadLocationFromDB(){
 function ensureJoinOpenFields(){
   let wrap = byId('joinOpenWrap');
   if (wrap) return wrap;
-  const loc = byId('locationTextInput');
-  if (!loc || !loc.parentNode) return null;
 
-  wrap = document.createElement('span');
+  // target: letakkan sebagai "sodara" dari blok Lokasi, bukan di dalamnya
+  const locInput = byId('locationTextInput');
+  if (!locInput) return null;
+
+  // Cari wadah grid baris konfigurasi (supaya ikut kolom yang sama)
+  const gridParent =
+    locInput.closest('.grid') ||
+    locInput.parentElement?.parentElement || // fallback umum
+    locInput.parentElement;                  // fallback terakhir
+
+  if (!gridParent) return null;
+
+  // 1 kolom penuh di mobile, sebagian kolom di layar besar (ikut pola grid yg lain)
+  wrap = document.createElement('div');
   wrap.id = 'joinOpenWrap';
-  wrap.className = 'ml-3 inline-flex items-center gap-2';
+  wrap.className = 'col-span-12 md:col-span-6 lg:col-span-4 xl:col-span-3';
+
+  // Label + 2 input (tanggal & jam) dalam satu baris yang rapi
   wrap.innerHTML = `
-    <label class="text-xs opacity-75 whitespace-nowrap">Buka Join</label>
-    <input id="joinOpenDateInput" type="date" class="border rounded px-2 py-1 text-sm">
-    <input id="joinOpenTimeInput" type="time" class="border rounded px-2 py-1 text-sm" step="60">
+    <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-600 dark:text-gray-300 mb-1">
+      Buka Join
+    </label>
+    <div class="join-open-row">
+      <input id="joinOpenDateInput" type="date" class="join-open-input" />
+      <input id="joinOpenTimeInput" type="time" class="join-open-input" step="60" />
+    </div>
   `;
-  loc.parentNode.insertBefore(wrap, loc.nextSibling);
+
+  gridParent.appendChild(wrap);
 
   // nilai awal dari state
   byId('joinOpenDateInput').value = toLocalDateValue(window.joinOpenAt);
@@ -2336,14 +2355,19 @@ function ensureJoinOpenFields(){
         await sb.from('events').update({ join_open_at: window.joinOpenAt }).eq('id', currentEventId);
         showToast?.('Waktu buka join disimpan', 'success');
       }
-    } catch (e) { console.warn(e); showToast?.('Gagal menyimpan waktu buka join', 'error'); }
-    try{ refreshJoinUI?.(); }catch{}
+    } catch (e) {
+      console.warn(e);
+      showToast?.('Gagal menyimpan waktu buka join', 'error');
+    }
+    try { refreshJoinUI?.(); } catch {}
   };
+
   byId('joinOpenDateInput')?.addEventListener('change', onChange);
   byId('joinOpenTimeInput')?.addEventListener('change', onChange);
 
   return wrap;
 }
+
 
 async function loadJoinOpenFromDB(){
   try{
