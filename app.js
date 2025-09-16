@@ -73,6 +73,40 @@ function shuffleInPlace(a){
 }
 const teamKey=(a,b)=>[a,b].sort().join(' & ');
 const vsKey  =(a,b)=>[a,b].sort().join(' vs ');
+// === Join Open Time (Tanggal & Jam terpisah) =========================
+// Menentukan kapan orang boleh mulai "Join" (tidak terkait tanggal/jam event)
+window.joinOpenAt = null; // ISO UTC string atau null
+let __joinTimer = null;
+
+function toLocalDateValue(iso) {
+  try { if (!iso) return ''; const d = new Date(iso);
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${da}`; } catch { return ''; }
+}
+function toLocalTimeValue(iso) {
+  try { if (!iso) return ''; const d = new Date(iso);
+    const hh=String(d.getHours()).padStart(2,'0'), mi=String(d.getMinutes()).padStart(2,'0');
+    return `${hh}:${mi}`; } catch { return ''; }
+}
+function combineDateTimeToISO(dateStr, timeStr) {
+  try { if (!dateStr || !timeStr) return null;
+    const dt = new Date(`${dateStr}T${timeStr}`);
+    return isNaN(dt.getTime()) ? null : dt.toISOString(); } catch { return null; }
+}
+function isJoinOpen() {
+  try { if (!window.joinOpenAt) return true;
+    return Date.now() >= new Date(window.joinOpenAt).getTime(); } catch { return true; }
+}
+function scheduleJoinOpenTimer() {
+  try {
+    if (__joinTimer) { clearTimeout(__joinTimer); __joinTimer=null; }
+    if (!window.joinOpenAt) return;
+    const diff = new Date(window.joinOpenAt).getTime() - Date.now();
+    if (diff > 0 && diff < 86400000) {
+      __joinTimer = setTimeout(()=>{ try{ refreshJoinUI?.(); }catch{} }, diff);
+    }
+  } catch {}
+}
 
 // hitung kemunculan pemain di SEMUA lapangan, dengan opsi exclude court tertentu
 function countAppearAll(excludeCourt=-1){
@@ -441,7 +475,7 @@ function startTitleEdit(){
 
 // ======== Auth Redirect Helper (GitHub Pages base) ========
 // Paksa magic link selalu redirect ke GitHub Pages (bukan localhost)
-const APP_BASE_URL = 'https://ferky36.github.io/scoremate';
+const APP_BASE_URL = 'https://ferky36.github.io/mix-americano';
 function getAuthRedirectURL(){
   return APP_BASE_URL + (location.search || '');
 }
@@ -626,22 +660,23 @@ async function openJoinModal(){
 }
 
 async function submitJoinForm(){
+  // Gate: belum masuk waktu buka join
+  if (!isJoinOpen()) {
+    const msg = byId('joinMessage') || byId('joinError');
+    const t = window.joinOpenAt
+      ? `Belum bisa join. Pendaftaran dibuka pada ${toLocalDateValue(window.joinOpenAt)} ${toLocalTimeValue(window.joinOpenAt)}.`
+      : 'Belum bisa join. Pendaftaran belum dibuka.';
+    if (msg) { msg.textContent = t; msg.className = 'text-xs text-amber-600 dark:text-amber-400'; }
+    try{ showToast?.(t, 'info'); }catch{}
+    return;
+  }
+
   const name = (byId('joinNameInput').value||'').trim();
   const gender = byId('joinGenderSelect').value||'';
   const level = byId('joinLevelSelect').value||'';
   const msg = byId('joinMsg');
   if (!currentEventId){ msg.textContent='Tidak ada event aktif.'; return; }
   if (!name){ msg.textContent='Nama wajib diisi.'; return; }
-    // Gate: event belum dibuka
-  if (!isEventOpen()) {
-    const t = window.eventStartAt
-      ? `Belum bisa join. Event dibuka pada ${toLocalDatetimeValue(window.eventStartAt).replace('T',' ')}.`
-      : 'Belum bisa join. Event belum dibuka.';
-    if (msg) { msg.textContent = t; msg.className = 'text-xs text-amber-600 dark:text-amber-400'; }
-    try{ showToast?.(t, 'info'); }catch{}
-    return;
-  }
-
   // disallow same name if already in waiting list or players (client-side friendly check)
   try {
     const norm = (s) => String(s || '').trim().toLowerCase();
@@ -786,9 +821,7 @@ async function refreshJoinUI(){
     if (!user){
       if (joinBtn) { joinBtn.classList.remove('hidden'); joinBtn.disabled=false; }
       statusWrap && statusWrap.classList.add('hidden');
-      if (joinBtn) { 
-        joinBtn.disabled = !isEventOpen(); joinBtn.title = (!isEventOpen() && window.eventStartAt) ? ('Event dibuka pada ' + toLocalDatetimeValue(window.eventStartAt).replace('T',' ')) : ''; 
-      }
+      return;
     }
     const found = findJoinedPlayerByUid(user.id);
     if (found){
@@ -800,6 +833,19 @@ async function refreshJoinUI(){
       joinBtn && joinBtn.classList.remove('hidden');
     }
   }catch{}
+  try{
+    const joinBtn = byId('btnJoinEvent') || byId('joinSubmitBtn');
+    const nameInp = byId('joinNameInput');
+    const open = isJoinOpen();
+    if (joinBtn) {
+      joinBtn.disabled = !open;
+      joinBtn.title = (!open && window.joinOpenAt)
+        ? ('Pendaftaran dibuka: '+toLocalDateValue(window.joinOpenAt)+' '+toLocalTimeValue(window.joinOpenAt))
+        : '';
+    }
+    if (nameInp) nameInp.disabled = !open;
+  } catch {}
+
 }
 // Fetch role from Supabase based on current user and event membership
 async function loadAccessRoleFromCloud(){
@@ -829,7 +875,7 @@ async function loadAccessRoleFromCloud(){
     // Load event settings (max_players, location) once role known
     try{ ensureMaxPlayersField(); await loadMaxPlayersFromDB(); }catch{}
     try{ ensureLocationFields(); await loadLocationFromDB(); }catch{}
-    try{ ensureStartAtField(); await loadStartAtFromDB(); }catch{}
+    try{ ensureJoinOpenFields();  await loadJoinOpenFromDB(); }catch{}
   }catch{ setAccessRole('viewer'); }
   finally { hideLoading(); }
 }
@@ -2259,64 +2305,56 @@ async function loadLocationFromDB(){
   }catch{}
 }
 
-// ================== Event Start Time (Editor) ================== //
-function ensureStartAtField(){
-  let wrap = byId('startAtWrap');
+function ensureJoinOpenFields(){
+  let wrap = byId('joinOpenWrap');
   if (wrap) return wrap;
-  const rc = byId('roundCount');
-  if (!rc || !rc.parentElement || !rc.parentElement.parentElement) return null;
-  const parent = rc.parentElement.parentElement; // grid container
+  const loc = byId('locationTextInput');
+  if (!loc || !loc.parentNode) return null;
 
-  wrap = document.createElement('div');
-  wrap.id = 'startAtWrap';
-  wrap.className = ''; // follow grid auto-placement
+  wrap = document.createElement('span');
+  wrap.id = 'joinOpenWrap';
+  wrap.className = 'ml-3 inline-flex items-center gap-2';
+  wrap.innerHTML = `
+    <label class="text-xs opacity-75 whitespace-nowrap">Buka Join</label>
+    <input id="joinOpenDateInput" type="date" class="border rounded px-2 py-1 text-sm">
+    <input id="joinOpenTimeInput" type="time" class="border rounded px-2 py-1 text-sm" step="60">
+  `;
+  loc.parentNode.insertBefore(wrap, loc.nextSibling);
 
-  const label = document.createElement('label');
-  label.className = 'block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300';
-  label.textContent = 'Mulai Event';
+  // nilai awal dari state
+  byId('joinOpenDateInput').value = toLocalDateValue(window.joinOpenAt);
+  byId('joinOpenTimeInput').value = toLocalTimeValue(window.joinOpenAt);
 
-  const input = document.createElement('input');
-  input.type = 'datetime-local';
-  input.id = 'eventStartAt';
-  input.className = 'border rounded px-2 py-1 text-sm';
-  input.value = toLocalDatetimeValue(window.eventStartAt);
-
-  input.addEventListener('change', async (e)=>{
-    const iso = fromLocalDatetimeValue(e.target.value);
-    window.eventStartAt = iso;
-    scheduleOpenTimer();
+  // simpan saat berubah
+  const onChange = async () => {
+    const d = byId('joinOpenDateInput').value;
+    const t = byId('joinOpenTimeInput').value;
+    window.joinOpenAt = combineDateTimeToISO(d, t);
+    scheduleJoinOpenTimer();
     try {
       if (currentEventId && window.sb) {
-        await sb.from('events').update({ start_at: iso }).eq('id', currentEventId);
-        showToast?.('Waktu mulai event disimpan', 'success');
+        await sb.from('events').update({ join_open_at: window.joinOpenAt }).eq('id', currentEventId);
+        showToast?.('Waktu buka join disimpan', 'success');
       }
-    } catch (err) {
-      console.error(err);
-      showToast?.('Gagal menyimpan waktu mulai', 'error');
-    }
-    try { refreshJoinUI?.(); } catch {}
-  });
-
-  wrap.append(label, input);
-
-  const mpWrap = byId('maxPlayersWrap');
-  const rcParent = rc.parentElement.parentElement;
-  const afterNode = (mpWrap && mpWrap.parentElement === rcParent) ? mpWrap.nextSibling : null;
-  if (afterNode) rcParent.insertBefore(wrap, afterNode);
-  else rcParent.appendChild(wrap);
+    } catch (e) { console.warn(e); showToast?.('Gagal menyimpan waktu buka join', 'error'); }
+    try{ refreshJoinUI?.(); }catch{}
+  };
+  byId('joinOpenDateInput')?.addEventListener('change', onChange);
+  byId('joinOpenTimeInput')?.addEventListener('change', onChange);
 
   return wrap;
 }
 
-async function loadStartAtFromDB(){
+async function loadJoinOpenFromDB(){
   try{
     if (!isCloudMode() || !window.sb?.from || !currentEventId) return;
-    const { data, error } = await sb.from('events').select('start_at').eq('id', currentEventId).maybeSingle();
-    if (error) return;
-    window.eventStartAt = data?.start_at || null;
-    const input = byId('eventStartAt');
-    if (input) input.value = toLocalDatetimeValue(window.eventStartAt);
-    scheduleOpenTimer();
+    const { data } = await sb.from('events').select('join_open_at').eq('id', currentEventId).maybeSingle();
+    window.joinOpenAt = data?.join_open_at || null;
+    const di = byId('joinOpenDateInput'), ti = byId('joinOpenTimeInput');
+    if (di) di.value = toLocalDateValue(window.joinOpenAt);
+    if (ti) ti.value = toLocalTimeValue(window.joinOpenAt);
+    scheduleJoinOpenTimer();
+    try{ refreshJoinUI?.(); }catch{}
   }catch{}
 }
 
@@ -5004,6 +5042,10 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   try{ updateEventActionButtons?.(); }catch{}
   try{ renderFilterSummary?.(); }catch{}
   try{ ensureJoinControls?.(); refreshJoinUI?.(); }catch{}
+  try{ ensureJoinOpenFields(); }catch{}
+  try{ if (currentEventId && window.sb) await loadJoinOpenFromDB(); }catch{}
+  try{ refreshJoinUI?.(); }catch{}
+
 });
 
 document.addEventListener('DOMContentLoaded', boot);
