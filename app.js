@@ -207,7 +207,7 @@ function suppressSelfPull(ms = 1500){     // panggil setelah SAVE lokal (upsert)
 // }
 
 // izinkan editor memproses perubahan dari klien lain, tapi tetap tahan self-pull
-function shouldProcessRemoteChange(){ll
+function shouldProcessRemoteChange(){
   const okByWindow = Date.now() >= __selfPullUntil;
   return okByWindow && (true); // viewer maupun editor
 }
