@@ -2591,7 +2591,7 @@ function renderServeBadgeInModal(){
 
     // tentukan server untuk rally berikutnya (format 32 poin, pindah tiap 2 poin)
     const total = Number(scoreCtx.a || 0) + Number(scoreCtx.b || 0);
-    const point = Math.min(32, Math.max(1, total + 1));
+    const point = Math.min(64, Math.max(1, total + 1));
     const sv = getServerForPoint(r, point); // {slot: 'a1'|'a2'|'b1'|'b2'}
 
     // builder chip: ikon bola + NAMA di dalamnya
