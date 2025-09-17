@@ -193,6 +193,26 @@ function getUrlParams() {
   };
 }
 
+// === Realtime identity & self-pull suppressor ========================
+const CLIENT_ID = (crypto?.randomUUID?.() ?? (Math.random().toString(36).slice(2) + Date.now()));
+
+let __selfPullUntil = 0;                  // epoch ms sampai kapan event DB diabaikan (untuk tab ini)
+function suppressSelfPull(ms = 1500){     // panggil setelah SAVE lokal (upsert) sukses/di-trigger
+  __selfPullUntil = Date.now() + ms;
+}
+
+// hanya viewer yg berdampak realtime
+// function shouldProcessRemoteChange(){     // hanya viewer + tidak sedang suppress
+//   return (typeof isViewer === 'function' ? isViewer() : false) && (Date.now() >= __selfPullUntil);
+// }
+
+// izinkan editor memproses perubahan dari klien lain, tapi tetap tahan self-pull
+function shouldProcessRemoteChange(){ll
+  const okByWindow = Date.now() >= __selfPullUntil;
+  return okByWindow && (true); // viewer maupun editor
+}
+
+
 function isUuid(v){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v || '');
 }
@@ -951,6 +971,7 @@ async function saveStateToCloud() {
       }
     } catch {}
     _serverVersion = data.version;
+    suppressSelfPull(1500);            // <-- TAMBAHAN
     markSaved?.(data.updated_at);
     return true;
   } catch (e) {
@@ -980,6 +1001,9 @@ function subscribeRealtimeForState(){
       table: 'event_states',
       filter: `event_id=eq.${currentEventId}`
     }, (payload) => {
+       // === TAMBAHAN: viewer-only + ignore window setelah save lokal ===
+      if (typeof shouldProcessRemoteChange === 'function' && !shouldProcessRemoteChange()) return;
+
       const row = payload.new || payload.old;
       if (!row) return;
       if (row.session_date !== currentSessionDate) return;
@@ -1618,6 +1642,7 @@ async function saveStateToCloudWithLoading(){
 function maybeAutoSaveCloud(useLoading=false){
   try{
     if (isCloudMode()) {
+      suppressSelfPull(1500); // <-- TAMBAHAN: tahan listener realtime di tab ini sebentar
       if (useLoading) return saveStateToCloudWithLoading();
       return saveStateToCloud(); // silent
     } else {
