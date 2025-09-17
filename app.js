@@ -55,16 +55,6 @@ function setScoreModalLocked(locked){
 
 // Pre-start state: sebelum klik Mulai, sembunyikan tombol +/- dan tampilkan tombol Mulai
 function setScoreModalPreStart(pre){
-    // Viewer read-only (bukan editor & bukan view=1): pastikan kontrol tersembunyi
-  if (typeof isViewer === 'function' && isViewer() &&
-      !(typeof isScoreOnlyMode === 'function' && isScoreOnlyMode())) {
-    ['scoreButtonsA','scoreButtonsB','btnStartTimer','btnResetScore','btnFinishScore'].forEach(id=>{
-      const el = byId(id);
-      if (el){ el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
-    });
-    return; // jangan lanjut ke show/hide normal
-  }
-
   const scoreButtonsA   = byId('scoreButtonsA');  
   const scoreButtonsB   = byId('scoreButtonsB');  
   const start  = byId('btnStartTimer');
@@ -201,25 +191,6 @@ function getUrlParams() {
     owner: url.searchParams.get('owner') || null,
     invite: url.searchParams.get('invite') || null,
   };
-}
-
-// === Realtime identity & self-pull suppressor ========================
-const CLIENT_ID = (crypto?.randomUUID?.() ?? (Math.random().toString(36).slice(2) + Date.now()));
-
-let __selfPullUntil = 0;                  // epoch ms sampai kapan event DB diabaikan (untuk tab ini)
-function suppressSelfPull(ms = 1500){     // panggil setelah SAVE lokal (upsert) sukses/di-trigger
-  __selfPullUntil = Date.now() + ms;
-}
-
-// hanya viewer yg berdampak realtime
-// function shouldProcessRemoteChange(){     // hanya viewer + tidak sedang suppress
-//   return (typeof isViewer === 'function' ? isViewer() : false) && (Date.now() >= __selfPullUntil);
-// }
-
-// izinkan editor memproses perubahan dari klien lain, tapi tetap tahan self-pull
-function shouldProcessRemoteChange(){
-  const okByWindow = Date.now() >= __selfPullUntil;
-  return okByWindow && (true); // viewer maupun editor
 }
 
 function isUuid(v){
@@ -980,7 +951,6 @@ async function saveStateToCloud() {
       }
     } catch {}
     _serverVersion = data.version;
-    suppressSelfPull(1500);            // <-- TAMBAHAN
     markSaved?.(data.updated_at);
     return true;
   } catch (e) {
@@ -1010,8 +980,6 @@ function subscribeRealtimeForState(){
       table: 'event_states',
       filter: `event_id=eq.${currentEventId}`
     }, (payload) => {
-       // === TAMBAHAN: viewer-only + ignore window setelah save lokal ===
-      if (typeof shouldProcessRemoteChange === 'function' && !shouldProcessRemoteChange()) return;
       const row = payload.new || payload.old;
       if (!row) return;
       if (row.session_date !== currentSessionDate) return;
@@ -1160,7 +1128,7 @@ function applyMinorRoundDelta(newState){
         byId('scoreAVal').textContent = scoreCtx.a;
         byId('scoreBVal').textContent = scoreCtx.b;
         const startBtn = byId('btnStartTimer');
-        if (target.startedAt){ if (startBtn) startBtn.classList.add('hidden'); if (canEditScore()) setScoreModalPreStart(false); }
+        if (target.startedAt){ if (startBtn) startBtn.classList.add('hidden'); setScoreModalPreStart(false); }
         if (target.finishedAt){ setScoreModalLocked(true); const t = byId('scoreTimer'); if (t) t.textContent='Permainan Selesai'; }
       }
     }catch{}
@@ -1372,14 +1340,6 @@ function getPaidChannel(){
 
 
 // ================== Access Control ================== //
-// Viewer read-only (bukan editor & bukan mode score-only)
-function isReadOnlyViewer(){
-  try {
-    return (typeof isViewer === 'function' && isViewer())
-        && !(typeof isScoreOnlyMode === 'function' && isScoreOnlyMode());
-  } catch { return false; }
-}
-
 // role: 'editor' (full access) | 'viewer' (read-only)
 let accessRole = 'editor';
 // flag owner event (true jika user saat ini adalah owner dari event aktif)
@@ -1658,7 +1618,6 @@ async function saveStateToCloudWithLoading(){
 function maybeAutoSaveCloud(useLoading=false){
   try{
     if (isCloudMode()) {
-      suppressSelfPull(1500); // <-- TAMBAHAN: tahan listener realtime di tab ini sebentar
       if (useLoading) return saveStateToCloudWithLoading();
       return saveStateToCloud(); // silent
     } else {
@@ -2338,16 +2297,16 @@ function ensureMaxPlayersField(){
   const parent = rc.parentElement.parentElement; // grid container
   wrap = document.createElement('div');
   wrap.id = 'maxPlayersWrap';
-  wrap.className = '';
+  wrap.className = 'filter-field';
   const label = document.createElement('label');
-  label.className = 'block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300';
+  label.className = 'filter-label block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300';
   label.textContent = 'Max Pemain';
   const input = document.createElement('input');
   input.id = 'maxPlayersInput';
   input.type = 'number';
   input.min = '1';
   input.placeholder = 'Tak terbatas';
-  input.className = 'mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100';
+  input.className = 'filter-input border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100';
   input.value = currentMaxPlayers ? String(currentMaxPlayers) : '';
   input.addEventListener('input', (e)=>{
     // update nilai lokal + tandai dirty; simpan ke state saat Save
@@ -3232,14 +3191,6 @@ function renderCourt(container, arr) {
       if (!r.finishedAt) doneV.classList.add('hidden');
       tdCalcV.appendChild(doneV);
 
-      // tombol "Lihat Skor Live" (viewer-only)
-      const btnLive = document.createElement('button');
-      btnLive.className = 'px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-sm w-full sm:w-auto hover:bg-indigo-500 focus:outline-none focus:ring focus:ring-indigo-300';
-      btnLive.textContent = 'Lihat Skor Live';
-      btnLive.addEventListener('click', () => openScoreModal(activeCourt, i)); // modal akan terkunci otomatis utk viewer
-      tdCalcV.appendChild(btnLive);
-
-
       tr.appendChild(tdCalcV);
       tbody.appendChild(tr);
       // Tambahkan baris jeda juga di mode viewer (agar waktu jeda terlihat)
@@ -4003,13 +3954,6 @@ function openScoreModal(courtIdx, roundIdx){
   byId('scoreRoundTitle').textContent = `Lap ${courtIdx+1} • Match ${roundIdx+1}`;
   byId('scoreAVal').textContent = scoreCtx.a;
   byId('scoreBVal').textContent = scoreCtx.b;
-  // === Viewer read-only: kunci & sembunyikan kontrol ===
-  if (isReadOnlyViewer()) {
-    try { setScoreModalLocked?.(true); } catch {}
-    const hide = (id)=>{ const el = byId(id); if (el){ el.classList.add('hidden-for-viewer'); el.setAttribute('aria-hidden','true'); } };
-    ['scoreButtonsA','scoreButtonsB','scoreStartBtn','scoreResetBtn','scoreFinishBtn'].forEach(hide);
-  }
-
   renderServeBadgeInModal();
 
     const ready = r.a1 && r.a2 && r.b1 && r.b2;
@@ -4048,7 +3992,7 @@ function openScoreModal(courtIdx, roundIdx){
     const startBtn = byId('btnStartTimer');
     const alreadyStarted = !!r.startedAt;
     if (startBtn) startBtn.classList.toggle('hidden', alreadyStarted);
-    if (alreadyStarted && canEditScore()){
+    if (alreadyStarted){
       // Tampilkan tombol +/- jika sudah mulai
       setScoreModalPreStart(false);
     }
@@ -4069,8 +4013,6 @@ function closeScoreModal(){
 // Handler dengan konfirmasi: bila match sudah dimulai namun belum selesai,
 // tutup = batalkan permainan (hapus startedAt) dan kembalikan tombol Mulai.
 function onCloseScoreClick(){
-  // Viewer read-only: cukup tutup tanpa ubah state
-  if (isViewer() && !isScoreOnlyMode()) { closeScoreModal(); return; }
   try{
     const r = (roundsByCourt[scoreCtx.court] || [])[scoreCtx.round] || {};
     const isStarted = !!r.startedAt;
@@ -4142,7 +4084,7 @@ function startScoreTimer(){
     if (typeof r._prevScoreB === "undefined") r._prevScoreB = (typeof r.scoreB !== "undefined") ? r.scoreB : "";
     r.startedAt = new Date().toISOString();
     // Saat mulai: tampilkan +/- dan sembunyikan tombol Mulai (di modal)
-    try{ if (canEditScore()) setScoreModalPreStart(false); }catch{}
+    try{ setScoreModalPreStart(false); }catch{}
     try{ const sBtn = byId('btnStartTimer'); if (sBtn) sBtn.classList.add('hidden'); }catch{}
     // Update live badge and action button inline
     try{
@@ -4253,12 +4195,6 @@ function commitScoreToRound(auto=false){
 
 
 function updateScoreDisplay(){
-  // Jangan toggle tombol untuk viewer murni
-  if (isReadOnlyViewer()) {
-    const a = byId('scoreButtonsA'); if (a) { a.style.display='none'; a.setAttribute('aria-hidden','true'); }
-    const b = byId('scoreButtonsB'); if (b) { b.style.display='none'; b.setAttribute('aria-hidden','true'); }
-  }
-
   byId('scoreAVal').textContent = scoreCtx.a;
   byId('scoreBVal').textContent = scoreCtx.b;
   renderServeBadgeInModal();
@@ -5403,7 +5339,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   try{ ensureJoinOpenFields(); }catch{}
   try{ if (currentEventId) getPaidChannel(); }catch{}
   try{ if (currentEventId && window.sb) await loadJoinOpenFromDB(); }catch{}
-  try{ if (!isViewer?.()) buildEditorFilterGrid(); }catch{}
   try{ refreshJoinUI?.(); }catch{}
 
 });
@@ -5435,13 +5370,4 @@ byId('btnLogout')?.addEventListener('click', async ()=>{
   try{ await sb.auth.signOut(); }catch{}
   location.reload();
 });
-
-
-
-
-
-
-
-
-
 
