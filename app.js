@@ -2297,16 +2297,16 @@ function ensureMaxPlayersField(){
   const parent = rc.parentElement.parentElement; // grid container
   wrap = document.createElement('div');
   wrap.id = 'maxPlayersWrap';
-  wrap.className = 'filter-field';
+  wrap.className = '';
   const label = document.createElement('label');
-  label.className = 'filter-label block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300';
+  label.className = 'block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300';
   label.textContent = 'Max Pemain';
   const input = document.createElement('input');
   input.id = 'maxPlayersInput';
   input.type = 'number';
   input.min = '1';
   input.placeholder = 'Tak terbatas';
-  input.className = 'filter-input border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100';
+  input.className = 'mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100';
   input.value = currentMaxPlayers ? String(currentMaxPlayers) : '';
   input.addEventListener('input', (e)=>{
     // update nilai lokal + tandai dirty; simpan ke state saat Save
@@ -3191,6 +3191,14 @@ function renderCourt(container, arr) {
       if (!r.finishedAt) doneV.classList.add('hidden');
       tdCalcV.appendChild(doneV);
 
+      // tombol "Lihat Skor Live" (viewer-only)
+      const btnLive = document.createElement('button');
+      btnLive.className = 'px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-sm w-full sm:w-auto hover:bg-indigo-500 focus:outline-none focus:ring focus:ring-indigo-300';
+      btnLive.textContent = 'Lihat Skor Live';
+      btnLive.addEventListener('click', () => openScoreModal(activeCourt, i)); // modal akan terkunci otomatis utk viewer
+      tdCalcV.appendChild(btnLive);
+
+
       tr.appendChild(tdCalcV);
       tbody.appendChild(tr);
       // Tambahkan baris jeda juga di mode viewer (agar waktu jeda terlihat)
@@ -4013,6 +4021,8 @@ function closeScoreModal(){
 // Handler dengan konfirmasi: bila match sudah dimulai namun belum selesai,
 // tutup = batalkan permainan (hapus startedAt) dan kembalikan tombol Mulai.
 function onCloseScoreClick(){
+  // Viewer read-only: cukup tutup tanpa ubah state
+  if (isViewer() && !isScoreOnlyMode()) { closeScoreModal(); return; }
   try{
     const r = (roundsByCourt[scoreCtx.court] || [])[scoreCtx.round] || {};
     const isStarted = !!r.startedAt;
@@ -5339,6 +5349,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   try{ ensureJoinOpenFields(); }catch{}
   try{ if (currentEventId) getPaidChannel(); }catch{}
   try{ if (currentEventId && window.sb) await loadJoinOpenFromDB(); }catch{}
+  try{ if (!isViewer?.()) buildEditorFilterGrid(); }catch{}
   try{ refreshJoinUI?.(); }catch{}
 
 });
@@ -5370,4 +5381,13 @@ byId('btnLogout')?.addEventListener('click', async ()=>{
   try{ await sb.auth.signOut(); }catch{}
   location.reload();
 });
+
+
+
+
+
+
+
+
+
 
