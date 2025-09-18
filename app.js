@@ -1538,6 +1538,13 @@ function renderFilterSummary(){
     panel.parentNode.insertBefore(box, panel.nextSibling);
   }
 
+  // Ensure panel and summary are mutually exclusive to avoid flicker
+  const viewerMode = (typeof isViewer === 'function') ? isViewer() : false;
+  panel.classList.toggle('hidden', viewerMode);
+  box.classList.toggle('hidden', !viewerMode);
+  box.setAttribute('aria-hidden', viewerMode ? 'false' : 'true');
+  if (!viewerMode){ box.innerHTML = ''; return; }
+
   const date = byId('sessionDate')?.value || '';
   const t = byId('startTime')?.value || '';
   const m = byId('minutesPerRound')?.value || '';
@@ -1585,8 +1592,7 @@ function renderFilterSummary(){
       </div>
     </div>
   `;
-  // show only in viewer
-  box.classList.toggle('hidden', !isViewer());
+  // already toggled above with viewerMode guard
 
   // summary toggle
   try {
@@ -5284,4 +5290,3 @@ byId('btnLogout')?.addEventListener('click', async ()=>{
   try{ await sb.auth.signOut(); }catch{}
   location.reload();
 });
-
