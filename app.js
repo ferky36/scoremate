@@ -4186,6 +4186,7 @@ if (btnHdrMenu) {
 const btnFilter = document.getElementById("btnFilter");
 if (btnFilter) {
   btnFilter.addEventListener("click", () => {
+    try { if (typeof isViewer === 'function' && isViewer()) return; } catch {}
     const panel = document.getElementById("filterPanel");
     const willShow = panel.classList.contains("hidden");
     panel.classList.toggle("hidden");
@@ -4197,7 +4198,11 @@ if (btnFilter) {
   });
   window.addEventListener("resize", () => {
     const panel = document.getElementById("filterPanel");
-    if (window.innerWidth >= 768) panel.classList.remove("hidden");
+    try {
+      if (window.innerWidth >= 768 && !(typeof isViewer === 'function' && isViewer())) {
+        panel.classList.remove("hidden");
+      }
+    } catch {}
   });
 }
 
