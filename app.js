@@ -3287,42 +3287,22 @@ try {
 
 function clearScoresActive(){
   const arr = roundsByCourt[activeCourt] || [];
-  if (arr.length && arr.some(r => r && (r.scoreA || r.scoreB || r.finishedAt))) {
+  if (arr.length && arr.some(r => r && (r.scoreA || r.scoreB))) {
     if (!confirm('Hapus skor di lapangan aktif?')) return;
   }
-  arr.forEach(r => {
-    if (!r) return;
-    r.scoreA = '';
-    r.scoreB = '';
-    try{ delete r.startedAt; }catch{}
-    try{ delete r.finishedAt; }catch{}
-    try{ delete r._prevScoreA; delete r._prevScoreB; }catch{}
-  });
-  markDirty();
-  renderAll();
-  computeStandings();
-  try{ refreshFairness?.(); }catch{}
+  arr.forEach(r => { if (r) { r.scoreA = ''; r.scoreB = ''; } });
+  markDirty(); renderAll(); computeStandings();
 }
 
 function clearScoresAll(){
-  const hasAny = roundsByCourt.some(c => (c||[]).some(r => r && (r.scoreA || r.scoreB || r.finishedAt)));
+  const hasAny = roundsByCourt.some(c => (c||[]).some(r => r && (r.scoreA || r.scoreB)));
   if (hasAny) {
     if (!confirm('Hapus skor di SEMUA lapangan?')) return;
   }
   roundsByCourt.forEach(courtArr => {
-    courtArr.forEach(r => {
-      if (!r) return;
-      r.scoreA = '';
-      r.scoreB = '';
-      try{ delete r.startedAt; }catch{}
-      try{ delete r.finishedAt; }catch{}
-      try{ delete r._prevScoreA; delete r._prevScoreB; }catch{}
-    });
+    courtArr.forEach(r => { if (r) { r.scoreA = ''; r.scoreB = ''; } });
   });
-  markDirty();
-  renderAll();
-  computeStandings();
-  try{ refreshFairness?.(); }catch{}
+  markDirty(); renderAll(); computeStandings();
 }
 
 
