@@ -550,6 +550,12 @@ body { font-size: clamp(14px, calc(14px * var(--ui-zoom) / 100), 20px); }
   align-items: center;
 }
 
+@media (max-width: 520px) {
+  .join-open-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .join-open-input {
   display: block;
   width: 100%;
@@ -643,20 +649,20 @@ input[type="time"].join-open-input {
 /* ===============================
    Filter / Jadwal panel layout
    =============================== */
-.filter-grid{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap:14px;
-  align-items:start;
+#filterPanel.filter-grid{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
 }
-@media (max-width: 380px){
-  .filter-grid{ grid-template-columns:1fr; }
-}
-@media (min-width: 640px){
-  .filter-grid{ grid-template-columns: repeat(3, minmax(0,1fr)); gap:16px 18px; }
+@media (min-width: 480px){
+  #filterPanel.filter-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
 }
 @media (min-width: 768px){
-  .filter-grid{ grid-template-columns: repeat(6, minmax(0,1fr)); gap:18px 20px; }
+  #filterPanel.filter-grid{ grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px 18px; }
+}
+@media (min-width: 1024px){
+  #filterPanel.filter-grid{ grid-template-columns: repeat(6, minmax(0,1fr)); gap: 18px 20px; }
 }
 
 .filter-field{
@@ -666,14 +672,8 @@ input[type="time"].join-open-input {
   min-width:0;
 }
 
-.filter-field--full{
-  grid-column: span 2;
-}
-@media (min-width: 640px){
-  .filter-grid .filter-field--full{ grid-column: span 3; }
-}
-@media (min-width: 768px){
-  .filter-grid .filter-field--full{ grid-column: span 6; }
+#filterPanel.filter-grid .filter-field--full{
+  grid-column: 1 / -1;
 }
 
 .filter-label{
@@ -721,5 +721,6 @@ input[type="time"].join-open-input {
     width:100%;
   }
 }
+
 
 
