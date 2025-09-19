@@ -1010,9 +1010,9 @@ function subscribeRealtimeForState(){
       table: 'event_states',
       filter: `event_id=eq.${currentEventId}`
     }, (payload) => {
-      const row = payload.new || payload.old;
-      if (!row) return;
-      if (row.session_date !== currentSessionDate) return;
+      const row = payload.new || payload.old || {};
+      const rowDate = row.session_date || row.sessionDate || null;
+      if (rowDate && normalizeDateKey(rowDate) !== currentSessionDate) return;
 
       // Snapshot sebelum reload untuk mendeteksi auto-promote dari server
       const prevPlayers = (Array.isArray(players) ? players.slice() : []);
