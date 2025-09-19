@@ -979,27 +979,7 @@ async function saveStateToCloud() {
         await sb.from('events').update({ max_players: mp }).eq('id', currentEventId);
       }
     } catch {}
-    // Enforce sequential start gating (after initial label decisions)
-    try {
-      const rounds = roundsByCourt[activeCourt] || [];
-      const rr = rounds[i] || {};
-      const hasScore2 = (rr.scoreA !== undefined && rr.scoreA !== null && rr.scoreA !== '') || (rr.scoreB !== undefined && rr.scoreB !== null && rr.scoreB !== '');
-      const started2 = !!rr.startedAt;
-      const allowStart2 = (typeof canEditScore === 'function') ? canEditScore() : !isViewer();
-      const seqOk2 = canStartRoundBySequence(activeCourt, i);
-      if (!hasScore2 && !started2 && allowStart2) {
-        if (seqOk2) {
-          btnCalc.textContent = 'Mulai Main';
-          btnCalc.disabled = false;
-          btnCalc.classList.remove('opacity-50','cursor-not-allowed','hidden');
-        } else {
-          btnCalc.textContent = 'Incoming Match';
-          btnCalc.disabled = true;
-          btnCalc.classList.add('opacity-50','cursor-not-allowed');
-          btnCalc.classList.remove('hidden');
-        }
-      }
-    } catch {}
+    
     _serverVersion = data.version;
     markSaved?.(data.updated_at);
     return true;
@@ -3219,9 +3199,19 @@ function renderCourt(container, arr) {
         btnCalc.textContent = 'Hitung Ulang';
         if (!allowRecalc) btnCalc.classList.add('hidden');
       } else {
-        btnCalc.textContent = 'Mulai Main';
         const started = !!r.startedAt;
-        if (!allowStart || started) btnCalc.classList.add('hidden');
+        if (!allowStart || started) {
+          btnCalc.classList.add('hidden');
+        } else if (canStartRoundBySequence(activeCourt, i)) {
+          btnCalc.textContent = 'Mulai Main';
+          btnCalc.disabled = false;
+          btnCalc.classList.remove('opacity-50','cursor-not-allowed');
+        } else {
+          btnCalc.textContent = 'Incoming Match';
+          btnCalc.disabled = true;
+          btnCalc.classList.add('opacity-50','cursor-not-allowed');
+          btnCalc.classList.remove('hidden');
+        }
       }
     } catch {}
 
