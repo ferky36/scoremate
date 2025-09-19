@@ -73,6 +73,36 @@ function shuffleInPlace(a){
 }
 const teamKey=(a,b)=>[a,b].sort().join(' & ');
 const vsKey  =(a,b)=>[a,b].sort().join(' vs ');
+// Sequential start guard: only allow starting round i when previous finished
+function canStartRoundBySequence(courtIdx, roundIdx){
+  try{
+    const rounds = roundsByCourt[courtIdx] || [];
+    if (roundIdx <= 0) return true;
+    const prev = rounds[roundIdx-1] || {};
+    return !!prev.finishedAt;
+  }catch{ return true; }
+}
+// Update next row button after a round finished (lightweight DOM tweak)
+function updateNextStartButton(courtIdx, roundIdx){
+  try{
+    const nextIdx = roundIdx + 1;
+    const rounds = roundsByCourt[courtIdx] || [];
+    const next = rounds[nextIdx];
+    if (!next) return;
+    const row = document.querySelector('.rnd-table tbody tr[data-index="'+nextIdx+'"]');
+    if (!row) return;
+    const actions = row.querySelector('.rnd-col-actions');
+    const btn = actions?.querySelector('button');
+    if (!btn) return;
+    const allowStart = (typeof canEditScore==='function') ? canEditScore() : !isViewer();
+    if (!allowStart || next.startedAt || next.finishedAt) return;
+    if (canStartRoundBySequence(courtIdx, nextIdx)){
+      btn.textContent = 'Mulai Main';
+      btn.disabled = false;
+      btn.classList.remove('opacity-50','cursor-not-allowed','hidden');
+    }
+  }catch{}
+}
 // === Join Open Time (Tanggal & Jam terpisah) =========================
 // Menentukan kapan orang boleh mulai "Join" (tidak terkait tanggal/jam event)
 window.joinOpenAt = null; // ISO UTC string atau null
@@ -949,6 +979,27 @@ async function saveStateToCloud() {
         await sb.from('events').update({ max_players: mp }).eq('id', currentEventId);
       }
     } catch {}
+    // Enforce sequential start gating (after initial label decisions)
+    try {
+      const rounds = roundsByCourt[activeCourt] || [];
+      const rr = rounds[i] || {};
+      const hasScore2 = (rr.scoreA !== undefined && rr.scoreA !== null && rr.scoreA !== '') || (rr.scoreB !== undefined && rr.scoreB !== null && rr.scoreB !== '');
+      const started2 = !!rr.startedAt;
+      const allowStart2 = (typeof canEditScore === 'function') ? canEditScore() : !isViewer();
+      const seqOk2 = canStartRoundBySequence(activeCourt, i);
+      if (!hasScore2 && !started2 && allowStart2) {
+        if (seqOk2) {
+          btnCalc.textContent = 'Mulai Main';
+          btnCalc.disabled = false;
+          btnCalc.classList.remove('opacity-50','cursor-not-allowed','hidden');
+        } else {
+          btnCalc.textContent = 'Incoming Match';
+          btnCalc.disabled = true;
+          btnCalc.classList.add('opacity-50','cursor-not-allowed');
+          btnCalc.classList.remove('hidden');
+        }
+      }
+    } catch {}
     _serverVersion = data.version;
     markSaved?.(data.updated_at);
     return true;
@@ -1115,6 +1166,7 @@ function applyMinorRoundDelta(newState){
         const doneOn = !!target.finishedAt;
         if (live) live.classList.toggle('hidden', !liveOn);
         if (done) done.classList.toggle('hidden', !doneOn);
+        if (doneOn) { try{ updateNextStartButton(diffCourt, diffRound); }catch{} }
       }
     }catch{}
 
@@ -3866,6 +3918,14 @@ function openScoreModal(courtIdx, roundIdx){
   scoreCtx.round = roundIdx;
 
   const r = (roundsByCourt[courtIdx] || [])[roundIdx] || {};
+  // Sequential validation: only allow opening for start when previous match finished
+  try{
+    const hasScoreGuard = (r.scoreA !== undefined && r.scoreA !== null && r.scoreA !== '') || (r.scoreB !== undefined && r.scoreB !== null && r.scoreB !== '');
+    if (!r.startedAt && !r.finishedAt && !hasScoreGuard && !canStartRoundBySequence(courtIdx, roundIdx)){
+      showToast?.('Belum waktunya match ini. Selesaikan match sebelumnya dahulu.', 'info');
+      return;
+    }
+  }catch{}
   scoreCtx.a = Number(r.scoreA || 0);
   scoreCtx.b = Number(r.scoreB || 0);
 
