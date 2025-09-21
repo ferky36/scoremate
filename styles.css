@@ -775,6 +775,29 @@ input[type="time"].join-open-input {
   }
 }
 
+/* ===== Standings medals (rank badges) ===== */
+.standing-medal{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:2px 6px; margin-left:8px; border-radius:9999px;
+  font-size:11px; line-height:1; font-weight:700;
+  vertical-align:middle; box-shadow:0 1px 0 rgba(0,0,0,.08);
+}
+.standing-medal.gold{
+  background:linear-gradient(180deg, #fde68a, #f59e0b);
+  color:#78350f; border:1px solid rgba(120,53,15,.25);
+}
+.standing-medal.silver{
+  background:linear-gradient(180deg, #e5e7eb, #cbd5e1);
+  color:#334155; border:1px solid rgba(51,65,85,.2);
+}
+.standing-medal.bronze{
+  background:linear-gradient(180deg, #f1c08f, #c08457);
+  color:#4a2b14; border:1px solid rgba(74,43,20,.22);
+}
+.dark .standing-medal.gold{ color:#fff; }
+.dark .standing-medal.silver{ color:#0f172a; }
+.dark .standing-medal.bronze{ color:#fff; }
+
 /* Collapsible: raise max height and smooth on dynamic content */
 .collapsible { overflow:hidden; max-height:0; transition:max-height .28s ease, opacity .18s ease; opacity:0; }
 .collapsible.open { max-height: 4000px; opacity:1; }
