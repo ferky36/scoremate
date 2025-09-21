@@ -122,3 +122,96 @@ function highlightPlayer(name){
     }
   }
 }
+
+// --- ALT REALTIME FALLBACK (non-intrusive) ---
+// Tujuan: jika subscribeRealtimeForState() tidak terpanggil saat init,
+// aktifkan kanal alternatif untuk memantau perubahan event_states atau polling ringan.
+// Catatan: tidak menyentuh/ubah fungsi lain; hanya memanfaatkan fungsi yang sudah ada.
+(function setupAltRealtimeFallback(){
+  let retryTimer = null;
+  let pollTimer = null;
+
+  function mainChannelActive(){
+    try{
+      const chans = window.sb?.getChannels?.() || [];
+      return chans.some(ch => String(ch?.topic||'').includes(`es:${currentEventId}`));
+    }catch{ return false; }
+  }
+
+  function altChannelActive(){
+    return !!window.__altStateCh && window.__altStateKey === currentEventId;
+  }
+
+  function handleRowChange(payload){
+    try{
+      const row = payload?.new || payload?.old || {};
+      const raw = (row && (row.session_date ?? row.sessionDate)) ?? null;
+      if (raw){
+        let key = '';
+        try{
+          if (typeof raw === 'string') key = normalizeDateKey(raw.slice(0,10));
+          else { const dt=new Date(raw); key = isNaN(dt.getTime()) ? String(raw).slice(0,10) : dt.toISOString().slice(0,10); }
+        }catch{ key = String(raw).slice(0,10); }
+        if (key && key !== currentSessionDate) return; // beda tanggal -> abaikan
+      }
+      let applied = false;
+      try{ if (payload?.new?.state && typeof applyMinorRoundDelta === 'function') applied = !!applyMinorRoundDelta(payload.new.state); }catch{}
+      if (!applied){ try{ if (payload?.new?.state && typeof applyMinorPlayersDelta === 'function') applied = !!applyMinorPlayersDelta(payload.new.state); }catch{} }
+      if (!applied){ try{ if (typeof loadStateFromCloudSilent === 'function') loadStateFromCloudSilent(); }catch{} }
+    }catch{}
+  }
+
+  function tryAltSubscribe(){
+    try{
+      if (!window.sb || !currentEventId) return false;
+      if (mainChannelActive()) return true;   // kanal utama sudah aktif
+      if (altChannelActive()) return true;    // sudah ada kanal alternatif
+
+      // Bersihkan kanal lama jika pindah event
+      if (window.__altStateCh && window.__altStateKey !== currentEventId){
+        try{ sb.removeChannel(window.__altStateCh); }catch{}
+        window.__altStateCh = null;
+      }
+
+      const ch = sb.channel(`es-alt:${currentEventId}`);
+      ch.on('postgres_changes', {
+        event: '*', schema: 'public', table: 'event_states',
+        filter: `event_id=eq.${currentEventId}`
+      }, handleRowChange);
+      ch.subscribe().catch(()=>{});
+      window.__altStateCh = ch;
+      window.__altStateKey = currentEventId;
+      return true;
+    }catch{ return false; }
+  }
+
+  function ensureAltRealtime(){
+    try{
+      if (tryAltSubscribe()){
+        if (retryTimer){ clearInterval(retryTimer); retryTimer=null; }
+      } else if (!retryTimer){
+        retryTimer = setInterval(tryAltSubscribe, 3000);
+      }
+    }catch{}
+  }
+
+  function startPollingFallback(){
+    if (pollTimer) return;
+    pollTimer = setInterval(async ()=>{
+      try{
+        if (document.hidden) return;
+        if (!(typeof isCloudMode === 'function' ? isCloudMode() : !!currentEventId)) return;
+        if (!window.sb || !currentEventId) return;
+        // Jika kanal utama/alt sudah aktif, tidak perlu polling
+        if (mainChannelActive() || altChannelActive()) return;
+        if (typeof loadStateFromCloudSilent === 'function') await loadStateFromCloudSilent();
+      }catch{}
+    }, 8000);
+  }
+
+  function boot(){ ensureAltRealtime(); startPollingFallback(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+  window.addEventListener('popstate', ensureAltRealtime);
+  window.addEventListener('visibilitychange', ensureAltRealtime);
+})();
