@@ -1011,8 +1011,21 @@ function subscribeRealtimeForState(){
       filter: `event_id=eq.${currentEventId}`
     }, (payload) => {
       const row = payload.new || payload.old || {};
-      const rowDate = row.session_date || row.sessionDate || null;
-      if (rowDate && normalizeDateKey(rowDate) !== currentSessionDate) return;
+      // Be robust: row.session_date may be undefined or a Date-like value
+      const raw = (row && (row.session_date ?? row.sessionDate)) ?? null;
+      if (raw) {
+        let key = '';
+        try {
+          if (typeof raw === 'string') {
+            // normalize 'YYYY-MM-DD' or full ISO; keep only date part
+            key = normalizeDateKey(raw.slice(0, 10));
+          } else {
+            const dt = new Date(raw);
+            key = isNaN(dt.getTime()) ? String(raw).slice(0, 10) : dt.toISOString().slice(0, 10);
+          }
+        } catch { key = String(raw).slice(0, 10); }
+        if (key && key !== currentSessionDate) return;
+      }
 
       // Snapshot sebelum reload untuk mendeteksi auto-promote dari server
       const prevPlayers = (Array.isArray(players) ? players.slice() : []);
