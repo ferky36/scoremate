@@ -48,7 +48,33 @@ body { font-size: clamp(14px, calc(14px * var(--ui-zoom) / 100), 20px); }
 .filter-slide { animation:slideDown .18s ease-out; }
 /* Make controls look like soft pills */
 @media (min-width:768px){
-  #hdrControls{ background:rgba(255,255,255,.15); padding:.5rem; border-radius:16px; backdrop-filter:saturate(140%) blur(2px); }
+  /* Desktop header layout refinements (visual only) */
+  header .mx-auto{ gap: 18px; }
+  #hdrChips{ align-items:center; gap:10px; }
+  #hdrControls{
+    display:flex; align-items:center; gap:10px;
+    background:linear-gradient(90deg, rgba(255,255,255,.18), rgba(255,255,255,.12));
+    padding:.5rem .6rem; border-radius:9999px;
+    backdrop-filter:saturate(140%) blur(3px);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
+  }
+  #hdrControls > button{
+    border-radius:9999px !important;
+    padding:.55rem .9rem !important;
+    line-height:1.1;
+    box-shadow: 0 1px 0 rgba(0,0,0,.06), 0 1px 8px rgba(0,0,0,.08);
+  }
+  /* Tweak color balance for white pills on gradient */
+  #hdrControls #btnSave,
+  #hdrControls #btnReport,
+  #hdrControls #btnLeaveEvent{
+    background: rgba(255,255,255,.95) !important;
+    color: #1f3a8a !important; /* indigo-800 */
+  }
+  #hdrControls #btnLeaveEvent{ color:#b91c1c !important; }
+  /* Make green/indigo buttons slightly softer */
+  #hdrControls #btnMakeEventLink{ background:#0ea463 !important; }
+  #hdrControls #btnShareEvent{ background:#4f46e5 !important; }
 }
 
 /* Header Location pill */
