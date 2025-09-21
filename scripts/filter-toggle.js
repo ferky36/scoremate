@@ -13,7 +13,7 @@
   if (open === null) {
     // kalau device pendek-lanskap -> start collapsed
     const isShortLandscape = window.matchMedia('(orientation: landscape) and (max-height: 480px)').matches;
-    open = isShortLandscape ? '0' : '1';
+    open = 0;
   }
   open = open === '1';
   if (open) panel.classList.add('open'); else panel.classList.remove('open');
