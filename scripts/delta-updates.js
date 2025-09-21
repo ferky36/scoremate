@@ -215,3 +215,31 @@ function highlightPlayer(name){
   window.addEventListener('popstate', ensureAltRealtime);
   window.addEventListener('visibilitychange', ensureAltRealtime);
 })();
+
+// --- UI sync hook mirip setPlayerPaid: pastikan setelah applyPayload() UI daftar pemain ter-refresh ---
+(function hookApplyPayloadUI(){
+  let wrapped = false;
+  function wrap(){
+    try{
+      if (wrapped) return;
+      if (typeof window.applyPayload !== 'function') return;
+      const orig = window.applyPayload;
+      window.applyPayload = function(payload){
+        const out = orig.apply(this, arguments);
+        try{ renderPlayersList?.(); }catch{}
+        try{ renderViewerPlayersList?.(); }catch{}
+        try{ renderHeaderChips?.(); }catch{}
+        try{ refreshJoinUI?.(); }catch{}
+        return out;
+      };
+      wrapped = true;
+    }catch{}
+  }
+  // Coba segera, ulangi saat DOM siap karena applyPayload didefinisikan di modul lain (sessions.js)
+  wrap();
+  if (!wrapped) {
+    const iv = setInterval(()=>{ wrap(); if (wrapped) clearInterval(iv); }, 150);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wrap);
+    else setTimeout(wrap, 0);
+  }
+})();
