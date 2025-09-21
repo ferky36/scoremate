@@ -22,13 +22,26 @@
     return aoa;
   }
 
-  // Export to Excel via SheetJS (XLSX is already included in index.html)
-  window.exportStandingsToExcel = function(){
+  // Lazy load SheetJS only when needed
+  let __xlsxLoading = null;
+  function ensureXLSX(){
+    if (window.XLSX && XLSX.utils) return Promise.resolve();
+    if (__xlsxLoading) return __xlsxLoading;
+    __xlsxLoading = new Promise((resolve, reject)=>{
+      const s = document.createElement('script');
+      s.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
+      s.async = true;
+      s.onload = ()=> resolve();
+      s.onerror = ()=> reject(new Error('Gagal memuat library Excel'));
+      document.head.appendChild(s);
+    });
+    return __xlsxLoading;
+  }
+
+  // Export to Excel via SheetJS (lazy)
+  window.exportStandingsToExcel = async function(){
     try{
-      if (typeof XLSX === 'undefined' || !XLSX.utils){
-        alert('Library Excel belum termuat. Coba refresh halaman.');
-        return;
-      }
+      await ensureXLSX();
       const data = getStandingsAoA();
       if (!data.length){ alert('Tabel klasemen belum tersedia.'); return; }
       const wb = XLSX.utils.book_new();
