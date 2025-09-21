@@ -30,6 +30,29 @@
 // Fallback: sebelum keluar/refresh, commit autosave
 window.addEventListener('beforeunload', saveToLocalSilent);
 
+// Enhance collapsible behavior for Filter/Jadwal panel without touching existing handlers
+(function fixFilterPanelCollapsible(){
+  const panel = document.getElementById('filterPanel');
+  const chevron = document.getElementById('filterChevron');
+  if (!panel) return;
+
+  function refresh(){
+    if (panel.classList.contains('open')){
+      try{ panel.style.maxHeight = (panel.scrollHeight + 24) + 'px'; panel.style.opacity = '1'; }catch{}
+      try{ if (chevron) chevron.textContent = '▲'; }catch{}
+    } else {
+      try{ panel.style.maxHeight = '0px'; panel.style.opacity = '0'; }catch{}
+      try{ if (chevron) chevron.textContent = '▼'; }catch{}
+    }
+  }
+
+  // Initial
+  refresh();
+  // When panel content changes or class toggled
+  try{ new MutationObserver(refresh).observe(panel, { childList:true, subtree:true, attributes:true, attributeFilter:['class'] }); }catch{}
+  window.addEventListener('resize', refresh);
+})();
+
 
 // Ketika ganti tanggal → simpan dulu yang lama, lalu load tanggal baru
 // byId('sessionDate')?.addEventListener('change', () => {
