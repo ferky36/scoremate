@@ -51,6 +51,10 @@
 .label-a{color:#34d399}
 .label-b{color:#93c5fd}
 .rmc-team{opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recap-overlay{padding:12px}
+@media(max-width:640px){
+  .rmc-team{white-space:normal}
+}
 .rmc-vs{opacity:.7}
 .rmc-score{display:flex;justify-content:space-between;align-items:flex-start;margin:.45rem 0 .1rem}
 .rmc-sa,.rmc-sb{font-size:2.1rem;font-weight:800;min-width:2ch}
@@ -76,9 +80,28 @@
 .recap-standings .diff-neg{color:#ef4444}
 .recap-standings .wr-high{color:#10b981}
 .recap-standings .wr-low{color:#ef4444}
+/* Mobile: standings scrolls horizontally (not vertically) */
+@media(max-width:640px){
+  /* Keep all sections within modal width; prevent horizontal scroll globally */
+  .recap-body{overflow-x:hidden}
+  /* Allow grid track to shrink (avoid min-content sizing pushing width) */
+  .recap-grid{grid-template-columns:minmax(0,1fr)}
+  .recap-grid, .recap-col-left, .recap-col-right, .recap-match-wrap, .recap-standings{min-width:0}
+  .recap-col-left, .recap-col-right{width:100%; max-width:100%; overflow:visible}
+  .recap-match-wrap, .recap-match-card, .cardlike{width:100%; max-width:100%; box-sizing:border-box}
+  /* Ensure match cards fully fit the viewport width */
+  .recap-match-card{overflow:hidden}
+  .rmc-mid{flex-wrap:wrap}
+  .rmc-team{word-break:break-word; overflow-wrap:anywhere}
+
+  /* Only standings can scroll horizontally */
+  .recap-standings{display:block; width:100%; overflow-x:auto; overflow-y:visible; max-height:none; -webkit-overflow-scrolling:touch}
+  .recap-standings table{min-width:640px; width:640px}
+  .recap-standings thead th{position:sticky; top:0; background:inherit}
+}
 
 .recap-insight-box{margin-top:.5rem;border:1px solid var(--recap-card-brd,#e5e7eb);border-radius:14px;background:var(--recap-card-bg,#fafafa);padding:.7rem .9rem}
-.recap-insight{margin:.2rem 0 .2rem 1rem;color:var(--recap-muted)}
+.recap-insight{margin:.2rem 0 .2rem 1rem;color:var(--recap-muted);list-style:disc}
 .recap-notes-full strong{color:inherit;font-weight:700}
 .recap-insight li{margin:.25rem 0}
 
@@ -86,6 +109,6 @@
 .cardlike{border:1px solid var(--recap-card-brd);border-radius:14px;background:var(--recap-card-bg);padding:.8rem .9rem}
 .recap-bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
 @media(max-width:980px){.recap-bottom-grid{grid-template-columns:1fr}}
-.recap-rules ol{margin:0;padding-left:18px;color:var(--recap-muted)}
-.recap-insight{margin:.2rem 0 .2rem 1rem}
+.recap-rules ol{margin:0;padding-left:18px;color:var(--recap-muted);list-style:decimal}
+.recap-insight{margin:.2rem 0 .2rem 1rem;color:var(--recap-muted);list-style:disc}
 .recap-insight-box.cardlike{padding:.8rem .9rem}

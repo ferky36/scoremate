@@ -58,15 +58,15 @@
     title.textContent = 'Match Recap';
     const actions = document.createElement('div');
     actions.className = 'recap-actions';
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'recap-action';
-    copyBtn.textContent = 'Copy';
-    copyBtn.addEventListener('click', ()=> copyRecapText());
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'recap-action';
+    saveBtn.textContent = 'Save as Image';
+    saveBtn.addEventListener('click', ()=> saveRecapAsImage());
     const closeBtn = document.createElement('button');
     closeBtn.className = 'recap-action';
     closeBtn.textContent = 'Tutup';
     closeBtn.addEventListener('click', closeRecapModal);
-    actions.appendChild(copyBtn);
+    actions.appendChild(saveBtn);
     actions.appendChild(closeBtn);
     header.appendChild(title);
     header.appendChild(actions);
@@ -440,6 +440,58 @@
       ta.value = out; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch{} ta.remove();
     }
     try{ window.showToast?.('Recap disalin ke clipboard', 'success'); }catch{}
+  }
+
+  async function ensureHtml2Canvas(){
+    if (window.html2canvas) return true;
+    return new Promise((resolve)=>{
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+      s.onload = ()=> resolve(true);
+      s.onerror = ()=> resolve(false);
+      document.head.appendChild(s);
+    });
+  }
+
+  async function saveRecapAsImage(){
+    const ok = await ensureHtml2Canvas();
+    if (!ok) { try{ showToast?.('Gagal memuat html2canvas', 'error'); }catch{} return; }
+    const panel = document.querySelector('#matchRecapOverlay .recap-panel');
+    if (!panel) return;
+    const body = panel.querySelector('.recap-body');
+    const standingsBox = panel.querySelector('.recap-standings');
+
+    // Temporarily expand scrollable areas so the snapshot includes full content
+    const stash = [];
+    [body, standingsBox].forEach(el=>{
+      if (!el) return;
+      stash.push([el, el.style.maxHeight, el.style.overflow]);
+      el.style.maxHeight = 'none';
+      el.style.overflow = 'visible';
+    });
+
+    // Force reflow
+    panel.offsetHeight;
+
+    const canvas = await window.html2canvas(panel, {
+      backgroundColor: getComputedStyle(panel).backgroundColor,
+      scale: Math.min(2, window.devicePixelRatio||1),
+      scrollX: 0, scrollY: 0,
+      windowWidth: panel.scrollWidth,
+      windowHeight: panel.scrollHeight
+    });
+
+    // Restore styles
+    stash.forEach(([el, mh, ov])=>{ el.style.maxHeight = mh || ''; el.style.overflow = ov || ''; });
+
+    if (canvas.toBlob) {
+      canvas.toBlob((blob)=>{
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href=url; a.download='match-recap.png'; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 1500);
+      });
+    } else {
+      const a = document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download='match-recap.png'; a.click();
+    }
   }
 
   // Boot
