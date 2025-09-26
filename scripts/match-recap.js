@@ -151,8 +151,9 @@
   function collectMatches(){
     const arr = [];
     try {
-      if (Array.isArray(window.roundsByCourt)){
-        window.roundsByCourt.forEach((courtArr, ci) => {
+      const RBC = (typeof roundsByCourt !== 'undefined') ? roundsByCourt : (window.roundsByCourt || null);
+      if (Array.isArray(RBC)){
+        RBC.forEach((courtArr, ci) => {
           (courtArr||[]).forEach((r, ri) => {
             if (!(r && r.a1 && r.a2 && r.b1 && r.b2)) return;
             const hasSa = r.scoreA !== undefined && r.scoreA !== null && r.scoreA !== '';
@@ -166,10 +167,9 @@
             });
           });
         });
-        console.log(arr)
         return arr;
       }
-    } catch {console.log('roundsByCourt read error');}
+    } catch {}
 
     // Fallback: parse visible table (active court only)
     try {
@@ -181,7 +181,8 @@
           const [a1,a2,b1,b2] = [...sels].map(s => s.value || s.options[s.selectedIndex]?.text || '');
           const [sa,sb] = [...inps].map(i => i.value || '');
           if (a1 && a2 && b1 && b2 && (sa!=='' || sb!=='')){
-            arr.push({ court: window.activeCourt? (Number(window.activeCourt)+1) : 1, round: idx+1, time: timeForRoundSafe(idx), a1,a2,b1,b2, sa:String(sa||0), sb:String(sb||0) });
+            const ac = (typeof activeCourt !== 'undefined') ? activeCourt : (window.activeCourt || 0);
+            arr.push({ court: Number(ac)+1, round: idx+1, time: timeForRoundSafe(idx), a1,a2,b1,b2, sa:String(sa||0), sb:String(sb||0) });
           }
         }
       });
@@ -191,9 +192,10 @@
 
   function timeForRoundSafe(i){
     try {
-      if (typeof window.roundStartTime === 'function' && typeof window.roundEndTime === 'function'){
-        const t = `${window.roundStartTime(i)}–${window.roundEndTime(i)}`;
-        return t;
+      const rs = (typeof roundStartTime === 'function') ? roundStartTime : window.roundStartTime;
+      const re = (typeof roundEndTime === 'function') ? roundEndTime : window.roundEndTime;
+      if (typeof rs === 'function' && typeof re === 'function'){
+        return `${rs(i)}–${re(i)}`;
       }
     } catch {}
     return '';
