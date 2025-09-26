@@ -269,7 +269,7 @@
     box.className = 'recap-insight-box cardlike recap-notes-full';
     const ul = document.createElement('ul');
     ul.className = 'recap-insight';
-    generateInsightsDetailed(matches, avgMargin, standings).forEach(t=>{
+    generateInsights(matches, avgMargin, standings).forEach(t=>{
       const li = document.createElement('li'); li.innerHTML = t; ul.appendChild(li);
     });
     box.appendChild(ul);
@@ -277,30 +277,37 @@
     return wrap;
   }
 
-  function generateInsightsDetailed(matches, avgMargin, standings){
+  // --- Dynamic insights powered by JSON templates ---
+  let INSIGHT_TPL_CACHE = null;
+  async function loadInsightTemplates(){
+    if (INSIGHT_TPL_CACHE) return INSIGHT_TPL_CACHE;
+    try{
+      const res = await fetch('scripts/insights-templates.json');
+      if (!res.ok) throw new Error('tpl fetch fail');
+      INSIGHT_TPL_CACHE = await res.json();
+    }catch(err){ INSIGHT_TPL_CACHE = { version:1, templates:[] }; }
+    return INSIGHT_TPL_CACHE;
+  }
+
+  function basicInsightsFallback(matches, avgMargin, standings){
+    // Fallback to previous static bullets if templates not loaded
     const bullets = [];
-    // 1) Peringkat berdasarkan Total (top 3)
     const topTotal = standings.slice().sort((a,b)=>b.pf-a.pf).slice(0,3)
       .map(s=>`${escapeHtml(s.player)} (${s.pf})`).join('; ');
     if (topTotal) bullets.push(`<strong>Peringkat berdasarkan Total:</strong> ${topTotal} mengejar.`);
-    // 2) Selisih terbaik (top 2)
     const topDiff = standings.slice().sort((a,b)=>b.diff-a.diff).slice(0,2)
       .map(s=>`${escapeHtml(s.player)} (+${s.diff})`).join(' & ');
     if (topDiff) bullets.push(`<strong>Selisih terbaik:</strong> ${topDiff} menunjukkan kontrol game tinggi.`);
-    // 3) WinRate unggul >= 70%
     const wrHigh = standings.filter(s=>{ const gp=s.w+s.l+(s.d||0); return gp && (s.w/gp)>=0.7; })
       .map(s=>{ const gp=s.w+s.l+(s.d||0); return `${escapeHtml(s.player)} ${(s.w/gp*100).toFixed(0)}%`; }).join(', ');
     if (wrHigh) bullets.push(`<strong>WinRate unggul (≥ 70%):</strong> ${wrHigh} — kandidat kunci untuk pairing berat.`);
-    // 4) Butuh perbaikan: WR ≤ 25% dan diff negatif
     const needs = standings.filter(s=>{ const gp=s.w+s.l+(s.d||0); const wr=gp?(s.w/gp):0; return wr<=0.25 && s.diff<0; })
       .slice(0,4)
       .map(s=>{ const gp=s.w+s.l+(s.d||0); const wr=gp?(s.w/gp*100).toFixed(0):'0'; return `${escapeHtml(s.player)} (${wr}%, ±${s.diff})`; }).join(', ');
     if (needs) bullets.push(`<strong>Butuh perbaikan:</strong> ${needs} — coba pairing dengan pemain ± positif.`);
-    // 5) Consistency watch: WR 45–55% tapi Total tinggi (TOP 1 Total di rentang itu)
     const mid = standings.filter(s=>{ const gp=s.w+s.l+(s.d||0); if(!gp) return false; const wr=s.w/gp; return wr>=0.45 && wr<=0.55; })
       .sort((a,b)=>b.pf-a.pf)[0];
     if (mid){ const gp=mid.w+mid.l+(mid.d||0); const wr=((mid.w/gp)*100).toFixed(0); bullets.push(`<strong>Consistency watch:</strong> ${escapeHtml(mid.player)} ${wr}% namun Total tinggi (${mid.pf}) → kontribusi poin bagus meski hasil belum stabil.`); }
-    // 6) Rotasi & keseimbangan (spread main)
     try {
       const counts = new Map();
       matches.forEach(m=>{ [m.a1,m.a2,m.b1,m.b2].forEach(p=>counts.set(p,(counts.get(p)||0)+1)); });
@@ -309,7 +316,118 @@
       const spread = (isFinite(min)&&isFinite(max))? (max-min) : 0;
       bullets.push(`<strong>Rotasi & keseimbangan:</strong> sebaran main ${spread===0?'merata':`selisih ${spread}`}.`);
     } catch {}
+    const tight = matches.length ? matches.slice().sort((a,b)=>a.margin-b.margin)[0] : null;
+    if (tight) bullets.push(`Match paling ketat: Match ${tight.round} (Skor ${tight.saN}–${tight.sbN}).`);
     return bullets;
+  }
+
+  function asPct(w,l,d){ const gp=(w||0)+(l||0)+(d||0); return gp? Math.round((w/gp)*100) : 0; }
+
+  function generateInsights(matches, avgMargin, standings){
+    // sync/async wrapper
+    const ctx = { matches, avgMargin, standings };
+    let out = [];
+    try {
+      // Attempt synchronous use of cached templates; if missing, schedule async load and fallback now
+      if (!INSIGHT_TPL_CACHE){ loadInsightTemplates().then(()=>{ /* next open will use cache */ }); return basicInsightsFallback(matches, avgMargin, standings); }
+      const tpl = INSIGHT_TPL_CACHE.templates || [];
+      out = applyTemplates(tpl, ctx);
+      if (!out.length) out = basicInsightsFallback(matches, avgMargin, standings);
+      return out;
+    } catch { return basicInsightsFallback(matches, avgMargin, standings); }
+  }
+
+  function applyTemplates(templates, ctx){
+    const bullets=[];
+    const standings = ctx.standings.map(s=>({
+      name: s.player, pf: s.pf, diff: s.diff, w:s.w, l:s.l, d:s.d||0, wr: asPct(s.w,s.l,s.d)
+    }));
+    const matches = ctx.matches;
+
+    const haveMatches = matches && matches.length>0;
+    const tight = haveMatches ? matches.slice().sort((a,b)=>a.margin-b.margin)[0] : null;
+    const avgMargin = Number(ctx.avgMargin||0);
+
+    for (const t of templates){
+      if (!passesWhen(t.when)) continue;
+      const text = buildText(t.build);
+      if (text) bullets.push(text);
+    }
+    return bullets;
+
+    function passesWhen(when){
+      if (!when || when.type==='always') return true;
+      switch(when.type){
+        case 'wr_ge': return standings.some(s=> s.w+s.l+s.d>0 && (s.w/(s.w+s.l+s.d)) >= (when.threshold||0));
+        case 'any_wr_le_and_diff_neg': return standings.some(s=>{ const gp=s.w+s.l+s.d; return gp>0 && (s.w/gp)<= (when.threshold||0) && s.diff<0;});
+        case 'exists_mid_wr': return standings.some(s=>{ const gp=s.w+s.l+s.d; if(!gp) return false; const wr=s.w/gp; return wr>=(when.min||0) && wr<=(when.max||1); });
+        case 'have_matches': return haveMatches;
+        case 'avg_margin_le': return avgMargin <= (when.threshold||0);
+        case 'avg_margin_ge': return avgMargin >= (when.threshold||0);
+        default: return false;
+      }
+    }
+
+    function buildText(build){
+      if (!build) return '';
+      switch(build.type){
+        case 'text':
+          return build.label || '';
+        case 'top_list':{
+          const src = build.source || 'pf';
+          const count = build.count || 3;
+          const arr = standings.slice().sort((a,b)=> (b[src]||0)-(a[src]||0)).slice(0,count);
+          if (!arr.length) return '';
+          const fmt = build.format || '{name} ({value})';
+          const s = arr.map(x=> fmt.replace('{name}', escapeHtml(x.name)).replace('{value}', String(x[src])) ).join(build.join||'; ');
+          const label = build.label ? `<strong>${build.label}:</strong> ` : '';
+          const suf = build.suffix ? ` ${build.suffix}` : '';
+          return `${label}${s}${suf}`;
+        }
+        case 'list_filter':{
+          const op = build.op||'>='; const th = build.threshold||0; const src=build.source||'wr';
+          const arr = standings.filter(s=> compare( (src==='wr'? (s.w/(s.w+s.l+s.d||1)) : s[src]||0), op, th));
+          if (!arr.length) return '';
+          const s = arr.map(x=>{
+            const pct = asPct(x.w,x.l,x.d);
+            return (build.format||'{name}').replace('{name}', escapeHtml(x.name)).replace('{pct}', String(pct));
+          }).join(build.join||', ');
+          const label = build.label ? `<strong>${build.label}:</strong> ` : '';
+          const suf = build.suffix ? ` ${build.suffix}` : '';
+          return `${label}${s}${suf}`;
+        }
+        case 'needs_improve':{
+          const th = build.threshold||0.25; const limit=build.limit||4;
+          const arr = standings.filter(s=>{ const gp=s.w+s.l+s.d; const wr=gp? (s.w/gp):0; return wr<=th && s.diff<0; })
+            .slice(0,limit).map(s=>{ const gp=s.w+s.l+s.d; const wr=gp? Math.round((s.w/gp)*100):0; return `${escapeHtml(s.name)} (${wr}%, ±${s.diff})`; });
+          if (!arr.length) return '';
+          return `<strong>Butuh perbaikan:</strong> ${arr.join(', ')} — coba pairing dengan pemain ± positif.`;
+        }
+        case 'consistency':{
+          const mn=build.min||0.45, mx=build.max||0.55;
+          const cand = standings.filter(s=>{ const gp=s.w+s.l+s.d; if(!gp) return false; const wr=s.w/gp; return wr>=mn && wr<=mx; }).sort((a,b)=>b.pf-a.pf)[0];
+          if (!cand) return '';
+          const gp=cand.w+cand.l+cand.d; const wr=Math.round((cand.w/gp)*100);
+          return `<strong>Consistency watch:</strong> ${escapeHtml(cand.name)} ${wr}% namun Total tinggi (${cand.pf}) → kontribusi poin bagus meski hasil belum stabil.`;
+        }
+        case 'tightest':{
+          if (!tight) return '';
+          return `Match paling ketat: Match ${tight.round} (Skor ${tight.saN}–${tight.sbN}).`;
+        }
+        case 'rotation':{
+          try{
+            const counts = new Map();
+            matches.forEach(m=>{ [m.a1,m.a2,m.b1,m.b2].forEach(p=>counts.set(p,(counts.get(p)||0)+1)); });
+            const vals=[...counts.values()]; const min=Math.min(...vals), max=Math.max(...vals); const spread=max-min;
+            const goodMax = build.good_max ?? 1;
+            const msg = spread<=goodMax ? 'sebaran main merata' : `sebaran main selisih ${spread}`;
+            return `<strong>Rotasi & keseimbangan:</strong> ${msg}.`;
+          }catch{ return ''; }
+        }
+        default: return '';
+      }
+    }
+    function compare(a,op,b){ if(op==='>=') return a>=b; if(op==='>') return a>b; if(op==='<=') return a<=b; if(op==='<') return a<b; if(op==='==') return a==b; return false; }
   }
 
   function bottomPanels(matches, avgMargin, standings){
