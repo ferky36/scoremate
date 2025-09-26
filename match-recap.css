@@ -1,0 +1,37 @@
+/* Lightweight styles for Match Recap modal/button */
+.recap-btn{display:inline-flex;align-items:center;gap:.5rem;padding:.6rem 1rem;border-radius:.75rem;background:linear-gradient(90deg,#6366f1,#22c55e);color:#fff;font-weight:600;border:none;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.recap-btn:hover{filter:brightness(1.05)}
+
+.recap-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-start;justify-content:center;opacity:0;transition:opacity .15s ease;z-index:60}
+.recap-overlay.open{opacity:1}
+.recap-panel{width:min(920px,92%);margin-top:4rem;background:var(--recap-bg,#fff);color:var(--recap-fg,#0f172a);border-radius:1rem;box-shadow:0 10px 30px rgba(0,0,0,.2);overflow:hidden}
+.dark .recap-panel{--recap-bg:#1f2937;--recap-fg:#e5e7eb}
+
+.recap-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid rgba(148,163,184,.25)}
+.recap-title{font-size:1.1rem;font-weight:700}
+.recap-actions{display:flex;gap:.5rem}
+.recap-action{padding:.45rem .8rem;border-radius:.6rem;background:transparent;border:1px solid rgba(148,163,184,.5);color:inherit}
+.recap-action:hover{background:rgba(148,163,184,.15)}
+
+.recap-body{padding:1rem 1.25rem;max-height:70vh;overflow:auto}
+.recap-hdr{margin-bottom:.75rem}
+.recap-hdr-title{font-weight:700}
+.recap-hdr-sub{font-size:.85rem;opacity:.75}
+
+.recap-summary{display:grid;grid-template-columns:1fr;gap:.5rem;margin:.5rem 0 1rem}
+@media(min-width:640px){.recap-summary{grid-template-columns:1fr 1fr}}
+.recap-summary>div{padding:.6rem .75rem;border:1px solid rgba(148,163,184,.35);border-radius:.75rem;background:rgba(99,102,241,.06)}
+.dark .recap-summary>div{background:rgba(99,102,241,.12)}
+
+.recap-list{display:flex;flex-direction:column;gap:.6rem}
+.recap-item{padding:.7rem .75rem;border:1px solid rgba(148,163,184,.3);border-radius:.75rem;background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(255,255,255,.35));backdrop-filter:blur(2px)}
+.dark .recap-item{background:linear-gradient(180deg,rgba(31,41,55,.8),rgba(31,41,55,.55))}
+.recap-line{display:flex;gap:.4rem;align-items:center;margin-bottom:.3rem}
+.recap-badge{display:inline-flex;align-items:center;font-size:.72rem;padding:.15rem .45rem;border-radius:999px;background:#eef2ff;color:#3730a3}
+.dark .recap-badge{background:#312e81;color:#e0e7ff}
+.recap-time{font-size:.8rem;opacity:.8;margin-left:.25rem}
+.recap-match{display:flex;gap:.4rem;align-items:baseline;flex-wrap:wrap}
+.recap-match .vs{opacity:.75}
+.recap-match .score{margin-left:auto;font-weight:700}
+.recap-empty{opacity:.7;padding:.6rem 0}
+
