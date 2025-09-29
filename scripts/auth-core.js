@@ -52,6 +52,7 @@ async function updateAuthUI(){
 async function resolveUserRoleAndApply(user){
   let role = '';
   let isOwner = false;
+  const prevOwner = !!window._isOwnerUser;
   try{
     role = String((user.app_metadata?.role || user.user_metadata?.role || '')).toLowerCase();
     isOwner = !!(user.app_metadata?.is_owner || user.user_metadata?.is_owner || role==='owner' || role==='admin');
@@ -89,7 +90,12 @@ async function resolveUserRoleAndApply(user){
   window._isOwnerUser = !!isOwner;
   const desired = (role==='editor' || role==='owner' || role==='admin') ? 'editor' : 'viewer';
   try{
-    if (typeof accessRole==='undefined' || accessRole !== desired) setAccessRole?.(desired);
+    if (typeof accessRole==='undefined' || accessRole !== desired) {
+      setAccessRole?.(desired);
+    } else {
+      // Role tidak berubah; jika owner flag berubah, terapkan ulang mode agar tombol owner muncul
+      if (prevOwner !== window._isOwnerUser) { try{ applyAccessMode?.(); }catch{} }
+    }
   }catch{}
 }
 
