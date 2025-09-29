@@ -25,7 +25,10 @@
     hostSection.appendChild(wrap);
   }
 
-  function openRecapModal(){
+  async function openRecapModal(){
+    // Ensure insight templates are loaded before first render
+    try { await loadInsightTemplates?.(); } catch {}
+
     const modal = buildModalShell();
     document.body.appendChild(modal.backdrop);
     modal.backdrop.offsetHeight; // force reflow for animation
