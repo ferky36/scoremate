@@ -45,7 +45,51 @@
       "id": "rotation_spread",
       "when": { "type": "have_matches" },
       "build": { "type": "rotation", "good_max": 1 }
+    },
+    {
+      "id": "most_wins",
+      "when": { "type": "always" },
+      "build": { "type": "top_list", "source": "w", "count": 3, "label": "Menang terbanyak" }
+    },
+    {
+      "id": "most_matches",
+      "when": { "type": "always" },
+      "build": { "type": "top_list", "source": "gp", "count": 3, "label": "Paling aktif (jumlah pertandingan)" }
+    },
+    {
+      "id": "needs_attention_losses",
+      "when": { "type": "always" },
+      "build": { "type": "top_list", "source": "l", "count": 2, "label": "Kalah terbanyak", "suffix": "— perlu evaluasi." }
+    },
+    {
+      "id": "biggest_margin_match",
+      "when": { "type": "have_matches" },
+      "build": { "type": "biggest" }
+    },
+    {
+      "id": "highest_scoring_match",
+      "when": { "type": "have_matches" },
+      "build": { "type": "highest_total" }
+    },
+    {
+      "id": "close_matches_count",
+      "when": { "type": "have_matches" },
+      "build": { "type": "close_count", "threshold": 3 }
+    },
+    {
+      "id": "best_pairs",
+      "when": { "type": "have_matches" },
+      "build": { "type": "best_pairs", "count": 3 }
+    },
+    {
+      "id": "avg_total_low",
+      "when": { "type": "avg_total_le", "threshold": 22 },
+      "build": { "type": "text", "label": "Total poin per match relatif rendah → tempo permainan cenderung defensif." }
+    },
+    {
+      "id": "avg_total_high",
+      "when": { "type": "avg_total_ge", "threshold": 40 },
+      "build": { "type": "text", "label": "Total poin per match tinggi → tempo permainan cenderung ofensif." }
     }
   ]
 }
-

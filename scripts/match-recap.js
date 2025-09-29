@@ -340,13 +340,21 @@
   function applyTemplates(templates, ctx){
     const bullets=[];
     const standings = ctx.standings.map(s=>({
-      name: s.player, pf: s.pf, diff: s.diff, w:s.w, l:s.l, d:s.d||0, wr: asPct(s.w,s.l,s.d)
+      name: s.player,
+      pf: s.pf,
+      diff: s.diff,
+      w: s.w,
+      l: s.l,
+      d: s.d||0,
+      gp: (s.w||0)+(s.l||0)+(s.d||0),
+      wr: asPct(s.w,s.l,s.d)
     }));
     const matches = ctx.matches;
 
     const haveMatches = matches && matches.length>0;
     const tight = haveMatches ? matches.slice().sort((a,b)=>a.margin-b.margin)[0] : null;
     const avgMargin = Number(ctx.avgMargin||0);
+    const avgTotal = matches && matches.length ? (matches.reduce((s,m)=> s + (Number(m.saN||m.sa||0)+Number(m.sbN||m.sb||0)), 0) / matches.length) : 0;
 
     for (const t of templates){
       if (!passesWhen(t.when)) continue;
@@ -364,6 +372,8 @@
         case 'have_matches': return haveMatches;
         case 'avg_margin_le': return avgMargin <= (when.threshold||0);
         case 'avg_margin_ge': return avgMargin >= (when.threshold||0);
+        case 'avg_total_le': return avgTotal <= (when.threshold||0);
+        case 'avg_total_ge': return avgTotal >= (when.threshold||0);
         default: return false;
       }
     }
@@ -423,6 +433,42 @@
             const msg = spread<=goodMax ? 'sebaran main merata' : `sebaran main selisih ${spread}`;
             return `<strong>Rotasi & keseimbangan:</strong> ${msg}.`;
           }catch{ return ''; }
+        }
+        case 'biggest':{
+          if (!haveMatches) return '';
+          const m = matches.slice().sort((a,b)=>b.margin-a.margin)[0];
+          const who = (m.saN>m.sbN) ? `${escapeHtml(m.a1)} & ${escapeHtml(m.a2)}` : `${escapeHtml(m.b1)} & ${escapeHtml(m.b2)}`;
+          return `Margin terbesar: Match ${m.round} — ${who} menang ${m.saN}–${m.sbN} (margin ${m.margin}).`;
+        }
+        case 'highest_total':{
+          if (!haveMatches) return '';
+          const m = matches.slice().sort((a,b)=>((b.saN+b.sbN)-(a.saN+a.sbN)))[0];
+          const total = m.saN+m.sbN;
+          return `Skor total tertinggi: Match ${m.round} — ${m.saN}–${m.sbN} (total ${total}).`;
+        }
+        case 'close_count':{
+          if (!haveMatches) return '';
+          const th = Number(build.threshold||3);
+          const n = matches.filter(m=>m.margin<=th).length;
+          if (!n) return '';
+          return `${n} pertandingan tergolong ketat (margin ≤ ${th}).`;
+        }
+        case 'best_pairs':{
+          if (!haveMatches) return '';
+          const count = build.count||3;
+          const pair = new Map();
+          matches.forEach(m=>{
+            const pA = `${m.a1} • ${m.a2}`; const pB = `${m.b1} • ${m.b2}`;
+            const keyA = `A:${pA}`; const keyB = `B:${pB}`;
+            const prevA = pair.get(keyA) || { name:pA, pf:0, diff:0 };
+            const prevB = pair.get(keyB) || { name:pB, pf:0, diff:0 };
+            prevA.pf += m.saN; prevA.diff += (m.saN - m.sbN); pair.set(keyA, prevA);
+            prevB.pf += m.sbN; prevB.diff += (m.sbN - m.saN); pair.set(keyB, prevB);
+          });
+          const arr = [...pair.values()].sort((a,b)=> (b.pf - a.pf) || (b.diff - a.diff)).slice(0,count);
+          if (!arr.length) return '';
+          const s = arr.map(x=> `${escapeHtml(x.name)} (${x.pf}, ±${x.diff})`).join('; ');
+          return `<strong>Pair produktif:</strong> ${s}.`;
         }
         default: return '';
       }
