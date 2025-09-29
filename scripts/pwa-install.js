@@ -72,6 +72,29 @@
   // iOS standalone detection
   const isStandalone = () => window.matchMedia && window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
+  function showHelpOverlay(){
+    const old = byId('pwaHelpOverlay'); if (old) old.remove();
+    const wrap = document.createElement('div'); wrap.id='pwaHelpOverlay';
+    wrap.style.cssText='position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.45)';
+    const panel = document.createElement('div');
+    panel.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:520px;width:92%;background:#0f172a;color:#e5e7eb;border:1px solid #334155;border-radius:16px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.3)';
+    const ua = (navigator.userAgent||'').toLowerCase();
+    const isiOS = /iphone|ipad|ipod/.test(ua);
+    const isAndroid = /android/.test(ua);
+    let html = '<div style="font-weight:700;margin-bottom:6px">Install ke Perangkat</div>';
+    if (isiOS){
+      html += '<div>Di iOS Safari: buka ikon <b>Share</b>, lalu pilih <b>Add to Home Screen</b>.</div>';
+    } else if (isAndroid){
+      html += '<div>Di Chrome Android: buka menu <b>⋮</b>, pilih <b>Install app</b> atau <b>Add to Home screen</b>.</div>';
+    } else {
+      html += '<div>Buka menu browser dan pilih <b>Install app</b> / <b>Add to Home screen</b>.</div>';
+    }
+    const btn = document.createElement('button'); btn.textContent='Tutup';
+    btn.style.cssText='margin-top:10px;padding:6px 10px;border:1px solid #475569;background:transparent;color:#e5e7eb;border-radius:10px';
+    btn.onclick = ()=> wrap.remove();
+    panel.innerHTML = html; panel.appendChild(btn); wrap.appendChild(panel); document.body.appendChild(wrap);
+  }
+
   function setupInstallFlow(){
     // Hide in standalone mode
     const btn = ensureInstallButton();
@@ -111,6 +134,9 @@
   }
 
   if (document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', ()=>{ registerSW(); wireHeaderButton(); setupInstallFlow(); });
-  } else { registerSW(); wireHeaderButton(); setupInstallFlow(); }
+    document.addEventListener('DOMContentLoaded', ()=>{ registerSW(); wireHeaderButton(); setupInstallFlow();
+      const hb = byId('btnInstallAppHdr'); if (hb) hb.classList.remove('hidden');
+      if (hb) hb.addEventListener('click', ()=>{ if (!window.__deferredPrompt) showHelpOverlay(); });
+    });
+  } else { registerSW(); wireHeaderButton(); setupInstallFlow(); const hb = byId('btnInstallAppHdr'); if (hb) { hb.classList.remove('hidden'); hb.addEventListener('click', ()=>{ if (!window.__deferredPrompt) showHelpOverlay(); }); } }
 })();
