@@ -287,6 +287,7 @@ function autoFillActiveCourt(){
 
 // tampilkan alert merah jika ada pemain bermain lebih banyak dari lainnya (spread > 1)
 function renderFairnessImbalanceAlert(){
+  try { if (typeof isViewer==='function' && isViewer()) return; } catch {}
   const cnt = typeof countAppearAll==='function' ? countAppearAll(-1) : {};
   if (!cnt) return;
   const list = (players||[]).slice(); if (!list.length) return;
