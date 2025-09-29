@@ -117,8 +117,30 @@ function autoFillActiveCourt(){
     const freeAll = players.filter(p=>!busy.has(p));
     if (freeAll.length<4) return null;
 
+    // Mixed gender handling: try to pick 2M+2F when feasible
+    if (effectivePairMode==='mixed' || effectivePairMode==='mixed_flex'){
+      const males   = freeAll.filter(p=> (metaOf(p).gender==='M'));
+      const females = freeAll.filter(p=> (metaOf(p).gender==='F'));
+      if (males.length>=2 && females.length>=2){
+        const topN = 4; // limit combinations by need to keep fast
+        const sortByNeed = (arr)=> arr.slice().sort((a,b)=> (need[b]||0)-(need[a]||0) || (Math.random()-0.5));
+        const mTop = sortByNeed(males).slice(0,topN);
+        const fTop = sortByNeed(females).slice(0,topN);
+        let bestFour=null, bestScore=-1e9;
+        for(let mi=0; mi<mTop.length; mi++)
+          for(let mj=mi+1; mj<mTop.length; mj++)
+            for(let fi=0; fi<fTop.length; fi++)
+              for(let fj=fi+1; fj<fTop.length; fj++){
+                const combo=[mTop[mi], mTop[mj], fTop[fi], fTop[fj]];
+                const s = bestPairScore(combo);
+                if (s>-1e8 && s>bestScore){ bestScore=s; bestFour=combo; }
+              }
+        if (bestFour) return bestFour;
+      }
+    }
+
     // 0) fungsi bantu untuk menilai kemungkinan pairing dan rematch
-    const bestPairScore = (four)=>{
+    function bestPairScore(four){
       const options = [
         {a1:four[0], a2:four[1], b1:four[2], b2:four[3]},
         {a1:four[0], a2:four[2], b1:four[1], b2:four[3]},
@@ -178,7 +200,7 @@ function autoFillActiveCourt(){
         if (score>best) best=score;
       }
       return best; // -inf jika tidak ada opsi memenuhi pairing
-    };
+    }
 
     // 1) sampling beberapa kombinasi unik dari freeAll dan pilih skor terbaik
     const tried=new Set();
@@ -443,3 +465,5 @@ function improveFairness(){
     }
   }catch(err){ console.error(err); }
 }
+
+

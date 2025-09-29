@@ -204,6 +204,8 @@ function validateAll(){
   });
 
   const box = byId('errors');
+  // In viewer mode, hide validation details entirely
+  try { if (typeof isViewer==='function' && isViewer()) { box.innerHTML=''; return true; } } catch {}
   box.innerHTML = problems.length
     ? `<div class="p-3 rounded-xl bg-red-50 text-red-700 border border-red-200 text-sm">
          <div class="font-semibold mb-1">Validasi:</div>
