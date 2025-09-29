@@ -52,7 +52,8 @@ async function resolveUserRoleAndApply(user){
   if (!role){
     try{
       const cached = JSON.parse(localStorage.getItem(CK)||'null');
-      if (cached && Date.now() - (cached.ts||0) < 60_000){
+      // Perpanjang TTL cache agar survive refresh (24 jam)
+      if (cached && Date.now() - (cached.ts||0) < 86_400_000){
         role = cached.role||''; isOwner = !!cached.isOwner;
       }
     }catch{}
@@ -69,6 +70,8 @@ async function resolveUserRoleAndApply(user){
         role = String(data.role||'').toLowerCase();
         isOwner = !!data.is_owner || role==='owner' || role==='admin';
         try{ localStorage.setItem(CK, JSON.stringify({ role, isOwner, ts: Date.now() })); }catch{}
+        // Persist ke user_metadata agar terbaca di /auth/v1/user tanpa query DB pada refresh berikutnya
+        try{ await sb.auth.updateUser({ data: { role, is_owner: isOwner } }); }catch{}
       }
     }catch{}
   }
