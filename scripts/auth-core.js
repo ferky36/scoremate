@@ -17,6 +17,16 @@ async function getCurrentUser(){
   try{ const { data } = await sb.auth.getUser(); return data?.user || null; }catch{ return null; }
 }
 
+// Subscribe ke perubahan sesi agar role/owner ter-update setelah refresh/token refresh
+try {
+  if (window.sb && !window.__authRoleWatcher){
+    window.__authRoleWatcher = sb.auth.onAuthStateChange((_event, _session)=>{
+      // Event bisa: INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED, SIGNED_OUT
+      try{ updateAuthUI?.(); }catch{}
+    });
+  }
+} catch {}
+
 async function updateAuthUI(){
   const user = await getCurrentUser();
   const loginBtn = byId('btnLogin'); const logoutBtn = byId('btnLogout'); const info = byId('authInfo'); const email = byId('authUserEmail');
