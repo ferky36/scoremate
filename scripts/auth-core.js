@@ -26,14 +26,22 @@ async function updateAuthUI(){
       const role = String((user.app_metadata?.role || user.user_metadata?.role || '')).toLowerCase();
       const isOwner = !!(user.app_metadata?.is_owner || user.user_metadata?.is_owner || role==='owner' || role==='admin');
       window._isOwnerUser = isOwner;
-      if (role==='editor' || role==='owner' || role==='admin') setAccessRole?.('editor'); else setAccessRole?.('viewer');
+      const desired = (role==='editor' || role==='owner' || role==='admin') ? 'editor' : 'viewer';
+      try {
+        // Hindari loop: hanya set jika berbeda
+        if (typeof accessRole !== 'undefined'){
+          if (accessRole !== desired) setAccessRole?.(desired);
+        } else {
+          setAccessRole?.(desired);
+        }
+      } catch {}
     } catch { try{ setAccessRole?.('editor'); }catch{} }
     loginBtn?.classList.add('hidden'); byId('btnAdminLogin')?.classList.add('hidden');
     logoutBtn?.classList.remove('hidden');
     info?.classList.remove('hidden');
     if (email) email.textContent = user.email || user.id;
   } else {
-    try{ setAccessRole?.('viewer'); }catch{}
+    try{ if (typeof accessRole==='undefined' || accessRole!=='viewer') setAccessRole?.('viewer'); }catch{}
     loginBtn?.classList.remove('hidden'); byId('btnAdminLogin')?.classList.remove('hidden');
     logoutBtn?.classList.add('hidden');
     info?.classList.add('hidden');
