@@ -210,6 +210,7 @@ function validateAll(){
          <ul class="list-disc pl-5 space-y-1">${problems.map(p=>`<li>${escapeHtml(p)}</li>`).join('')}</ul>
        </div>`
     : `<div class="p-3 rounded-xl bg-green-50 text-green-700 border border-green-200 text-sm">Tidak ada masalah penjadwalan.</div>`;
+  try { if (typeof renderFairnessImbalanceAlert==='function') renderFairnessImbalanceAlert(); } catch {}
   return problems.length===0;
 }
 
