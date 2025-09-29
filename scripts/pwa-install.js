@@ -38,6 +38,37 @@
     return btn;
   }
 
+  function wireHeaderButton(){
+    let hdrBtn = byId('btnInstallAppHdr');
+    if (!hdrBtn){
+      const chips = byId('hdrChips');
+      if (chips){
+        // Sanitize any malformed leftover text/markup from previous injections
+        try {
+          [...chips.childNodes].forEach(n=>{
+            if (n && n.nodeType===3 && /Install App/i.test(n.textContent||'')) n.remove();
+            if (n && n.nodeType===1 && typeof n.id==='string' && /InstallAppHdr/i.test(n.id) && !/^btnInstallAppHdr$/.test(n.id)) n.remove();
+          });
+        } catch {}
+        hdrBtn = document.createElement('button');
+        hdrBtn.id = 'btnInstallAppHdr';
+        hdrBtn.className = 'hidden px-3 py-2 rounded-xl bg-white/20 text-white font-semibold shadow hover:bg-white/30';
+        hdrBtn.title = 'Install aplikasi ke perangkat';
+        hdrBtn.textContent = 'Install App';
+        chips.appendChild(hdrBtn);
+      }
+    }
+    if (!hdrBtn) return;
+    hdrBtn.addEventListener('click', async ()=>{
+      if (!window.__deferredPrompt) return;
+      try{
+        await window.__deferredPrompt.prompt();
+        const choice = await window.__deferredPrompt.userChoice;
+        if (choice?.outcome === 'accepted') { hdrBtn.classList.add('hidden'); window.__deferredPrompt=null; }
+      }catch{}
+    });
+  }
+
   // iOS standalone detection
   const isStandalone = () => window.matchMedia && window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
@@ -51,10 +82,12 @@
       window.__deferredPrompt = e;
       const b = ensureInstallButton();
       b.style.display='inline-block';
+      const hdrBtn = byId('btnInstallAppHdr'); if (hdrBtn) hdrBtn.classList.remove('hidden');
     });
 
     window.addEventListener('appinstalled', ()=>{
       const b = byId('pwaInstallBtn'); if (b) b.style.display='none';
+      const hb = byId('btnInstallAppHdr'); if (hb) hb.classList.add('hidden');
       window.__deferredPrompt = null;
     });
 
@@ -78,7 +111,6 @@
   }
 
   if (document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', ()=>{ registerSW(); setupInstallFlow(); });
-  } else { registerSW(); setupInstallFlow(); }
+    document.addEventListener('DOMContentLoaded', ()=>{ registerSW(); wireHeaderButton(); setupInstallFlow(); });
+  } else { registerSW(); wireHeaderButton(); setupInstallFlow(); }
 })();
-
