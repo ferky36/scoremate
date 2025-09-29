@@ -21,12 +21,20 @@ async function updateAuthUI(){
   const user = await getCurrentUser();
   const loginBtn = byId('btnLogin'); const logoutBtn = byId('btnLogout'); const info = byId('authInfo'); const email = byId('authUserEmail');
   if (user){
-    loginBtn?.classList.add('hidden');
+    // Otomatiskan akses editor berdasarkan role user (tanpa owner=yes di URL)
+    try {
+      const role = String((user.app_metadata?.role || user.user_metadata?.role || '')).toLowerCase();
+      const isOwner = !!(user.app_metadata?.is_owner || user.user_metadata?.is_owner || role==='owner' || role==='admin');
+      window._isOwnerUser = isOwner;
+      if (role==='editor' || role==='owner' || role==='admin') setAccessRole?.('editor'); else setAccessRole?.('viewer');
+    } catch { try{ setAccessRole?.('editor'); }catch{} }
+    loginBtn?.classList.add('hidden'); byId('btnAdminLogin')?.classList.add('hidden');
     logoutBtn?.classList.remove('hidden');
     info?.classList.remove('hidden');
     if (email) email.textContent = user.email || user.id;
   } else {
-    loginBtn?.classList.remove('hidden');
+    try{ setAccessRole?.('viewer'); }catch{}
+    loginBtn?.classList.remove('hidden'); byId('btnAdminLogin')?.classList.remove('hidden');
     logoutBtn?.classList.add('hidden');
     info?.classList.add('hidden');
   }
@@ -52,5 +60,13 @@ function ensureAuthButtons(){
     const b = document.createElement('button'); b.id='btnLogout'; b.className='px-3 py-2 rounded-xl bg-white text-indigo-700 font-semibold shadow hover:opacity-90 hidden'; b.textContent='Logout';
     bar.appendChild(b);
     b.addEventListener('click', async ()=>{ try{ await sb.auth.signOut(); }catch{} location.reload(); });
+  }
+  if (!byId('btnAdminLogin')){
+    const b = document.createElement('button'); b.id='btnAdminLogin'; b.className='px-3 py-2 rounded-xl bg-white text-indigo-700 font-semibold shadow hover:opacity-90'; b.textContent='Login as Administrator';
+    bar.appendChild(b);
+    b.addEventListener('click', ()=>{
+      const m = byId('adminLoginModal'); if (!m) return; m.classList.remove('hidden');
+      try{ sb.auth.getUser().then(({data})=>{ if (data?.user?.email) byId('adminEmail').value = data.user.email; }); }catch{}
+    });
   }
 }

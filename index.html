@@ -429,7 +429,7 @@
           <button id="eventCopyBtn" class="px-3 py-2 rounded-lg bg-green-600 text-white text-sm">Copy</button>
         </div>
       </div>
-    </div>
+  </div>
   </div>
 
   <!-- Modal: Login -->
@@ -446,6 +446,24 @@
           <button id="loginSendBtn" class="w-full px-3 py-2 rounded-xl bg-indigo-600 text-white font-semibold">Kirim Link Login</button>
           <div id="loginMsg" class="text-xs"></div>
         </div>
+    </div>
+  </div>
+
+  <!-- Modal: Admin Login -->
+  <div id="adminLoginModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" id="adminBackdrop"></div>
+    <div class="relative mx-auto mt-16 w-[92%] max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow p-4 md:p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold">Administrator Login</h3>
+        <button id="adminCancelBtn" class="px-3 py-1 rounded-lg border dark:border-gray-700">Tutup</button>
+      </div>
+      <div class="space-y-3">
+        <div class="text-sm text-gray-600 dark:text-gray-300">Masukkan email dan password Supabase Anda.</div>
+        <input id="adminEmail" type="email" placeholder="email@example.com" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
+        <input id="adminPass" type="password" placeholder="Password" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
+        <button id="adminLoginBtn" class="w-full px-3 py-2 rounded-xl bg-indigo-600 text-white font-semibold">Login</button>
+        <div id="adminMsg" class="text-xs"></div>
+      </div>
     </div>
   </div>
 
