@@ -98,7 +98,11 @@
   function setupInstallFlow(){
     // Hide in standalone mode
     const btn = ensureInstallButton();
-    if (isStandalone()) { btn.style.display='none'; return; }
+    if (isStandalone()) {
+      btn.style.display='none';
+      const hb0 = byId('btnInstallAppHdr'); if (hb0) hb0.classList.add('hidden');
+      return;
+    }
 
     window.addEventListener('beforeinstallprompt', (e)=>{
       e.preventDefault();
@@ -135,8 +139,7 @@
 
   if (document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded', ()=>{ registerSW(); wireHeaderButton(); setupInstallFlow();
-      const hb = byId('btnInstallAppHdr'); if (hb) hb.classList.remove('hidden');
-      if (hb) hb.addEventListener('click', ()=>{ if (!window.__deferredPrompt) showHelpOverlay(); });
+      const hb = byId('btnInstallAppHdr'); if (hb) hb.addEventListener('click', ()=>{ if (!window.__deferredPrompt) showHelpOverlay(); });
     });
-  } else { registerSW(); wireHeaderButton(); setupInstallFlow(); const hb = byId('btnInstallAppHdr'); if (hb) { hb.classList.remove('hidden'); hb.addEventListener('click', ()=>{ if (!window.__deferredPrompt) showHelpOverlay(); }); } }
+  } else { registerSW(); wireHeaderButton(); setupInstallFlow(); const hb = byId('btnInstallAppHdr'); if (hb) { hb.addEventListener('click', ()=>{ if (!window.__deferredPrompt) showHelpOverlay(); }); } }
 })();
