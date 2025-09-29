@@ -21,21 +21,8 @@ async function updateAuthUI(){
   const user = await getCurrentUser();
   const loginBtn = byId('btnLogin'); const logoutBtn = byId('btnLogout'); const info = byId('authInfo'); const email = byId('authUserEmail');
   if (user){
-    // Otomatiskan akses editor berdasarkan role user (tanpa owner=yes di URL)
-    try {
-      const role = String((user.app_metadata?.role || user.user_metadata?.role || '')).toLowerCase();
-      const isOwner = !!(user.app_metadata?.is_owner || user.user_metadata?.is_owner || role==='owner' || role==='admin');
-      window._isOwnerUser = isOwner;
-      const desired = (role==='editor' || role==='owner' || role==='admin') ? 'editor' : 'viewer';
-      try {
-        // Hindari loop: hanya set jika berbeda
-        if (typeof accessRole !== 'undefined'){
-          if (accessRole !== desired) setAccessRole?.(desired);
-        } else {
-          setAccessRole?.(desired);
-        }
-      } catch {}
-    } catch { try{ setAccessRole?.('editor'); }catch{} }
+    // Otomatiskan akses editor berdasarkan metadata / tabel user_roles (tanpa owner=yes di URL)
+    await resolveUserRoleAndApply(user);
     loginBtn?.classList.add('hidden'); byId('btnAdminLogin')?.classList.add('hidden');
     logoutBtn?.classList.remove('hidden');
     info?.classList.remove('hidden');
@@ -46,6 +33,51 @@ async function updateAuthUI(){
     logoutBtn?.classList.add('hidden');
     info?.classList.add('hidden');
   }
+}
+
+// Resolve role dari:
+// 1) app_metadata.role / user_metadata.role (jika tersedia)
+// 2) tabel Supabase 'user_roles' (kolom: user_id uuid, email text, role text, is_owner boolean)
+//    kebijakan RLS: authenticated users boleh SELECT baris mereka sendiri (by user_id/email)
+async function resolveUserRoleAndApply(user){
+  let role = '';
+  let isOwner = false;
+  try{
+    role = String((user.app_metadata?.role || user.user_metadata?.role || '')).toLowerCase();
+    isOwner = !!(user.app_metadata?.is_owner || user.user_metadata?.is_owner || role==='owner' || role==='admin');
+  }catch{}
+
+  // Cache ringan di localStorage untuk mengurangi hit /auth/v1/user dan query tabel
+  const CK = `roleCache:v1:${user.id}`;
+  if (!role){
+    try{
+      const cached = JSON.parse(localStorage.getItem(CK)||'null');
+      if (cached && Date.now() - (cached.ts||0) < 60_000){
+        role = cached.role||''; isOwner = !!cached.isOwner;
+      }
+    }catch{}
+  }
+
+  if (!role){
+    try{
+      // Cari di tabel user_roles berdasarkan user_id atau email
+      const { data, error } = await sb.from('user_roles')
+        .select('role,is_owner')
+        .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+        .maybeSingle();
+      if (!error && data){
+        role = String(data.role||'').toLowerCase();
+        isOwner = !!data.is_owner || role==='owner' || role==='admin';
+        try{ localStorage.setItem(CK, JSON.stringify({ role, isOwner, ts: Date.now() })); }catch{}
+      }
+    }catch{}
+  }
+
+  window._isOwnerUser = !!isOwner;
+  const desired = (role==='editor' || role==='owner' || role==='admin') ? 'editor' : 'viewer';
+  try{
+    if (typeof accessRole==='undefined' || accessRole !== desired) setAccessRole?.(desired);
+  }catch{}
 }
 
 function ensureAuthButtons(){
