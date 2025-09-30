@@ -50,6 +50,8 @@ function applyAccessMode(){
     'btnClearScoresAll'
   ];
   hideGeneralIds.forEach(id=>{ const el = byId(id); if (el) el.classList.toggle('hidden', isViewer()); });
+  // Show viewer-only search button
+  try{ const vb = byId('btnViewerSearchEvent'); if (vb) vb.classList.toggle('hidden', !isViewer()); }catch{}
 
   // 2) Score controls container: sembunyikan untuk viewer biasa, TAPI tampilkan untuk view=1
   const hideScoreIds = [ 'scoreControlsLeft', 'btnFinishScore', 'btnRecalc', 'scoreButtonsA', 'scoreButtonsB' ];
@@ -103,6 +105,8 @@ function applyAccessMode(){
   updateAuthUI?.();
   // Refresh Join/Leave controls visibility when role changes
   try{ refreshJoinUI?.(); }catch{}
+  // Viewer "Cari Event" button visibility
+  try{ const vb = byId('btnViewerSearchEvent'); if (vb) vb.classList.toggle('hidden', !isViewer()); }catch{}
 
   // Title editor (rename) visibility: only in cloud mode, only for editor
   try {

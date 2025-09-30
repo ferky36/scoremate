@@ -110,7 +110,8 @@ window.renderPlayersList = function(...args){
 // Buka modal
 // Open Create Event modal (extracted)
 function setEventModalTab(mode){
-  const isCreate = mode !== "search";
+  const viewerMode = (typeof isViewer==='function' && isViewer());
+  const isCreate = (!viewerMode) && (mode !== "search");
   const tCreate = document.getElementById("tabCreateEvent");
   const tSearch = document.getElementById("tabSearchEvent");
   const fCreate = document.getElementById("eventForm");
@@ -122,7 +123,16 @@ function setEventModalTab(mode){
   if (tSearch){ tSearch.classList.toggle("bg-indigo-600", !isCreate); tSearch.classList.toggle("text-white", !isCreate); }
   // Ensure tabs are visible and title set for Create/Search context
   const tabs = document.getElementById('eventTabs'); if (tabs) tabs.classList.remove('hidden');
-  const titleEl = document.querySelector('#eventModal h3'); if (titleEl) titleEl.textContent = 'Buat/Cari Event';
+  const titleEl = document.querySelector('#eventModal h3');
+  if (viewerMode){
+    if (tCreate) tCreate.classList.add('hidden');
+    if (tSearch) tSearch.classList.add('hidden');
+    if (fCreate) fCreate.classList.add('hidden');
+    if (titleEl) titleEl.textContent = 'Cari Event';
+  } else {
+    if (tCreate) tCreate.classList.remove('hidden');
+    if (titleEl) titleEl.textContent = 'Buat/Cari Event';
+  }
   // If editor link row exists from previous share, show it back in create/search context
   const ed = document.getElementById('eventEditorLinkOutput');
   if (ed && ed.parentElement) ed.parentElement.classList.remove('hidden');
@@ -202,39 +212,179 @@ async function getMyEventIds(){
   }catch{ hideLoading(); return []; }
 }
 
+function ensureSearchDateInput(){
+  const host = byId('eventSearchForm'); if (!host) return;
+  const oldSel = byId('searchDateSelect');
+  let inp = byId('searchDateInput');
+  if (!inp){
+    inp = document.createElement('input');
+    inp.type = 'date';
+    inp.id = 'searchDateInput';
+    inp.className = 'hidden';
+    if (oldSel && oldSel.parentElement){ oldSel.parentElement.insertBefore(inp, oldSel); }
+    else { host.prepend(inp); }
+  }
+  if (oldSel) oldSel.classList.add('hidden');
+  // Bind change once after created
+  if (!inp.dataset.bound){
+    inp.addEventListener('change', async ()=>{
+      const d = getSearchDateValue() || '';
+      await loadSearchEventsForDate(d);
+      const delBtn = byId('deleteEventBtn'); if (delBtn) delBtn.disabled = true;
+      // Re-render calendar selection state when date changes via input
+      try{ renderSearchCalendarFor(d); }catch{}
+    });
+    inp.dataset.bound = '1';
+  }
+  // Ensure custom calendar exists
+  ensureSearchCalendar(inp);
+}
+
+function getSearchDateValue(){
+  const v = byId('searchDateInput')?.value || '';
+  if (v) return v;
+  return byId('searchDateSelect')?.value || '';
+}
+
 async function loadSearchDates(){
-  const sel = byId('searchDateSelect'); if (!sel) return;
-  sel.innerHTML = '<option value="">Pilih tanggal…</option>';
-  const isOwner = !!window._isOwnerUser;
-  const ids = isOwner ? [] : await getMyEventIds();
-  if (!isOwner && !ids.length) return;
+  ensureSearchDateInput();
+  const inp = byId('searchDateInput'); if (!inp) return;
+  const allowAll = (!!window._isOwnerUser) || (typeof isViewer==='function' && isViewer());
+  let ids = [];
+  if (!allowAll){ ids = await getMyEventIds(); }
   try{
     showLoading('Memuat tanggal…');
     let rows;
-    if (isOwner) {
-      const r = await sb.from('event_states')
-        .select('session_date')
-        .order('session_date', { ascending: false });
+    if (allowAll){
+      const r = await sb.from('event_states').select('session_date').order('session_date', { ascending: false });
       rows = r.data;
     } else {
-      const r = await sb.from('event_states')
-        .select('session_date')
-        .in('event_id', ids)
-        .order('session_date', { ascending: false });
-      rows = r.data;
+      if (!ids.length){ rows = []; }
+      else {
+        const r = await sb.from('event_states').select('session_date').in('event_id', ids).order('session_date', { ascending: false });
+        rows = r.data;
+      }
     }
-    const seen = new Set();
-    (rows||[]).forEach(r=>{ if (r.session_date && !seen.has(r.session_date)) { seen.add(r.session_date); const o=document.createElement('option'); o.value=r.session_date; o.textContent=r.session_date; sel.appendChild(o);} });
-    // preselect current date if exists; otherwise select latest (first option)
-    const cur = normalizeDateKey(byId('sessionDate')?.value || '');
-    if (cur && seen.has(cur)) {
-      sel.value = cur;
+    const seen = Array.from(new Set((rows||[]).map(r=>r.session_date).filter(Boolean)));
+    window._searchEventDates = seen;
+    // Choose default date: current if exists, else latest available
+    const curPref = normalizeDateKey(byId('sessionDate')?.value || currentSessionDate || '');
+    let pick = '';
+    if (curPref && seen.includes(curPref)) pick = curPref;
+    else if (seen.length > 0) pick = seen[0];
+    else pick = curPref || new Date().toISOString().slice(0,10);
+    inp.value = pick;
+    // Render calendar for the month containing pick
+    try{ renderSearchCalendarFor(pick); }catch{}
+    // Fetch events for selected date immediately
+    await loadSearchEventsForDate(pick);
+  }catch{ /* noop */ }
+  finally{ hideLoading(); }
+}
+
+// removed: legacy hints under date input (chips)
+
+// ===== Custom Calendar (with event highlights) =====
+function ensureSearchCalendar(anchorEl){
+  const host = anchorEl?.parentElement || byId('eventSearchForm'); if (!host) return;
+  if (byId('searchCalendar')) return;
+  const cal = document.createElement('div');
+  cal.id = 'searchCalendar';
+  cal.className = 'mt-2 border rounded-xl p-2 dark:border-gray-700';
+  cal.innerHTML = `
+    <div class="flex items-center justify-between mb-2 gap-2">
+      <div class="flex items-center gap-1">
+        <button id="calPrevYear" class="px-2 py-1 rounded-lg border dark:border-gray-700">«</button>
+        <button id="calPrev" class="px-2 py-1 rounded-lg border dark:border-gray-700">‹</button>
+      </div>
+      <div id="calTitle" class="font-semibold"></div>
+      <div class="flex items-center gap-1">
+        <button id="calNext" class="px-2 py-1 rounded-lg border dark:border-gray-700">›</button>
+        <button id="calNextYear" class="px-2 py-1 rounded-lg border dark:border-gray-700">»</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-7 text-center text-xs text-gray-500 dark:text-gray-300 mb-1">
+      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+    <div id="calGrid" class="grid grid-cols-7 gap-1"></div>
+  `;
+  host.appendChild(cal);
+  byId('calPrev').addEventListener('click', ()=> navMonth(-1));
+  byId('calNext').addEventListener('click', ()=> navMonth(+1));
+  byId('calPrevYear').addEventListener('click', ()=> navMonth(-12));
+  byId('calNextYear').addEventListener('click', ()=> navMonth(+12));
+}
+
+function pad2(n){ return String(n).padStart(2,'0'); }
+function isoLocal(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function parseISODate(s){ const m = String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m) return null; return new Date(Number(m[1]), Number(m[2])-1, Number(m[3])); }
+
+function getCalView(){
+  if (!window._searchCalViewYM){
+    const inp = byId('searchDateInput');
+    const base = (inp?.value && parseISODate(inp.value)) || new Date();
+    window._searchCalViewYM = { y: base.getFullYear(), m: base.getMonth() };
+  }
+  return window._searchCalViewYM;
+}
+function setCalView(y,m){ window._searchCalViewYM = { y, m }; renderSearchCalendar(); }
+
+function navMonth(delta){
+  const v = getCalView();
+  let y = v.y, m = v.m + delta;
+  y += Math.floor(m / 12);
+  m = ((m % 12) + 12) % 12;
+  setCalView(y, m);
+}
+
+function renderSearchCalendarFor(dateStr){
+  const d = parseISODate(dateStr) || new Date();
+  setCalView(d.getFullYear(), d.getMonth());
+}
+
+function renderSearchCalendar(){
+  const grid = byId('calGrid'); const title = byId('calTitle'); if (!grid || !title) return;
+  const v = getCalView();
+  const year = v.y; const month = v.m;
+  const first = new Date(year, month, 1);
+  const startIdx = first.getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
+  title.textContent = new Date(year, month, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
+  grid.innerHTML = '';
+  const highlight = new Set((window._searchEventDates||[]));
+  const selected = (byId('searchDateInput')?.value)||'';
+  // Render 42 cells (6 weeks)
+  for (let i=0; i<42; i++){
+    const cell = document.createElement('button');
+    cell.type = 'button';
+    cell.className = 'h-9 rounded-lg text-sm flex items-center justify-center border dark:border-gray-700';
+    let dayNum, dMonth = month, dYear = year, inMonth = true;
+    if (i < startIdx){
+      dayNum = prevMonthDays - startIdx + 1 + i; dMonth = month-1; inMonth = false; cell.classList.add('opacity-40');
+      if (dMonth < 0) { dMonth = 11; dYear = year - 1; }
+    } else if (i >= startIdx + daysInMonth){
+      dayNum = i - (startIdx + daysInMonth) + 1; dMonth = month+1; inMonth = false; cell.classList.add('opacity-40');
+      if (dMonth > 11) { dMonth = 0; dYear = year + 1; }
     } else {
-      const first = sel.querySelector('option[value]:not([value=""])');
-      if (first) sel.value = first.value;
+      dayNum = i - startIdx + 1; inMonth = true;
     }
-  }catch{}
-  finally { hideLoading(); }
+    const d = new Date(dYear, dMonth, dayNum);
+    const iso = isoLocal(d);
+    cell.dataset.date = iso;
+    cell.textContent = String(dayNum);
+    // highlight if has event
+    if (highlight.has(iso)) cell.className += ' bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
+    // today ring
+    const today = new Date(); const todayIso = today.toISOString().slice(0,10);
+    if (iso === todayIso) cell.className += ' ring-1 ring-indigo-300';
+    // selected
+    if (selected && iso === selected) cell.className += ' ring-2 ring-indigo-500';
+    cell.addEventListener('click', ()=>{
+      const inp = byId('searchDateInput'); if (inp){ inp.value = iso; inp.dispatchEvent(new Event('change')); }
+    });
+    grid.appendChild(cell);
+  }
 }
 
 async function loadSearchEventsForDate(dateStr){
@@ -243,13 +393,13 @@ async function loadSearchEventsForDate(dateStr){
   evSel.innerHTML = '<option value="">Memuat…</option>';
   btnOpen && (btnOpen.disabled = true);
   const delBtn = byId('deleteEventBtn'); if (delBtn) delBtn.disabled = true;
-  const isOwner = !!window._isOwnerUser;
-  const ids = isOwner ? [] : await getMyEventIds();
-  if ((!isOwner && !ids.length) || !dateStr){ evSel.innerHTML = '<option value="">— Tidak ada —</option>'; return; }
+  const allowAll = (!!window._isOwnerUser) || (typeof isViewer==='function' && isViewer());
+  const ids = allowAll ? [] : await getMyEventIds();
+  if ((!allowAll && !ids.length) || !dateStr){ evSel.innerHTML = '<option value="">— Tidak ada —</option>'; return; }
   try{
     showLoading('Memuat event…');
     let states;
-    if (isOwner) {
+    if (allowAll) {
       const r = await sb.from('event_states')
         .select('event_id, updated_at')
         .eq('session_date', dateStr)
@@ -312,11 +462,20 @@ function openSearchEventModal(){ setEventModalTab('search');
   const evSel = byId('searchEventSelect'); if (evSel) { evSel.innerHTML = '<option value="">- Pilih tanggal dulu -</option>'; }
   const btn = byId('openEventBtn'); if (btn) btn.disabled = true;
   ensureDeleteEventButton();
+  // In viewer mode, hide create tab and form
+  try{
+    if (typeof isViewer==='function' && isViewer()){
+      byId('tabCreateEvent')?.classList.add('hidden');
+      byId('tabSearchEvent')?.classList.add('hidden');
+      byId('eventForm')?.classList.add('hidden');
+    } else {
+      byId('tabCreateEvent')?.classList.remove('hidden');
+      byId('tabSearchEvent')?.classList.remove('hidden');
+    }
+  }catch{}
   // load dates then events for initial selection
   (async ()=>{
     await loadSearchDates();
-    const d = byId('searchDateSelect')?.value || '';
-    if (d) await loadSearchEventsForDate(d);
   })();
 }
 
@@ -429,7 +588,7 @@ byId('btnShareEvent')?.addEventListener('click', openShareEventModal);
 try{ setupPlayersToolbarUI?.(); }catch{}
 // Tab handlers for Event modal
 byId('tabCreateEvent')?.addEventListener('click', ()=>{ setEventModalTab('create'); });
-byId('tabSearchEvent')?.addEventListener('click', async ()=>{ setEventModalTab('search'); await loadSearchDates(); const d = byId('searchDateSelect')?.value || ''; if (d) await loadSearchEventsForDate(d); });
+byId('tabSearchEvent')?.addEventListener('click', async ()=>{ setEventModalTab('search'); await loadSearchDates(); });
 byId('eventCancelBtn')?.addEventListener('click', () => {
   byId('eventModal').classList.add('hidden');
 });
@@ -599,13 +758,18 @@ byId('eventCopyBtn')?.addEventListener('click', async () => {
 
 // Search Event modal bindings
 byId('searchCancelBtn')?.addEventListener('click', ()=> byId('eventModal')?.classList.add('hidden'));
+byId('searchDateInput')?.addEventListener('change', async ()=>{
+  const d = getSearchDateValue() || '';
+  await loadSearchEventsForDate(d);
+  const delBtn = byId('deleteEventBtn'); if (delBtn) delBtn.disabled = true;
+});
 byId('searchDateSelect')?.addEventListener('change', async ()=>{
-  const d = byId('searchDateSelect')?.value || '';
+  const d = getSearchDateValue() || '';
   await loadSearchEventsForDate(d);
   const delBtn = byId('deleteEventBtn'); if (delBtn) delBtn.disabled = true;
 });
 byId('openEventBtn')?.addEventListener('click', async ()=>{
-  const d = byId('searchDateSelect')?.value || '';
+  const d = getSearchDateValue() || '';
   const ev = byId('searchEventSelect')?.value || '';
   if (!d || !ev) { alert('Pilih tanggal dan event.'); return; }
   byId('eventModal')?.classList.add('hidden');
@@ -622,7 +786,14 @@ byId('searchEventSelect')?.addEventListener('change', ()=>{
 function ensureDeleteEventButton(){
   const container = byId('eventSearchForm') || byId('eventModal');
   if (!container) return;
-  if (byId('deleteEventBtn')) return;
+  // Viewer tidak boleh menghapus event: sembunyikan tombol jika ada dan jangan buat baru
+  try{
+    if (typeof isViewer==='function' && isViewer()){
+      const ex = byId('deleteEventBtn'); if (ex) ex.classList.add('hidden');
+      return;
+    }
+  }catch{}
+  if (byId('deleteEventBtn')) { byId('deleteEventBtn').classList.remove('hidden'); return; }
   const openBtn = byId('openEventBtn');
   const del = document.createElement('button');
   del.id = 'deleteEventBtn';
@@ -638,7 +809,7 @@ function ensureDeleteEventButton(){
 }
 
 async function onDeleteSelectedEvent(){
-  const d = byId('searchDateSelect')?.value || '';
+  const d = getSearchDateValue() || '';
   const ev = byId('searchEventSelect')?.value || '';
   if (!d || !ev) return;
   if (!confirm('Hapus event ini secara permanen? Tindakan ini tidak bisa dibatalkan.')) return;
@@ -697,7 +868,22 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   try{ if (currentEventId) getPaidChannel(); }catch{}
   try{ if (currentEventId && window.sb) await loadJoinOpenFromDB(); }catch{}
   try{ refreshJoinUI?.(); }catch{}
+  try{ ensureViewerSearchButton?.(); }catch{}
 
 });
 
 document.addEventListener('DOMContentLoaded', boot);
+
+// Viewer-only quick access button to open Search modal
+function ensureViewerSearchButton(){
+  const bar = byId('hdrControls'); if (!bar) return;
+  if (!byId('btnViewerSearchEvent')){
+    const b = document.createElement('button');
+    b.id = 'btnViewerSearchEvent';
+    b.className = 'px-3 py-2 rounded-xl bg-indigo-600 text-white font-semibold shadow hover:opacity-90 hidden';
+    b.textContent = 'Cari Event';
+    b.addEventListener('click', ()=>{ openSearchEventModal(); });
+    bar.appendChild(b);
+  }
+  try{ const btn = byId('btnViewerSearchEvent'); if (btn) btn.classList.toggle('hidden', !(typeof isViewer==='function' && isViewer())); }catch{}
+}
