@@ -71,6 +71,16 @@ async function loadAccessRoleFromCloud(){
     const uid = userData?.user?.id || null;
     if (!uid){ setAccessRole('viewer'); return; }
 
+    // Global owner (from auth-core): always editor, regardless of event ownership/membership
+    if (window._isOwnerUser) {
+      setAccessRole('editor');
+      try{ ensureMaxPlayersField(); await loadMaxPlayersFromDB(); }catch{}
+      try{ ensureLocationFields(); await loadLocationFromDB(); }catch{}
+      try{ ensureJoinOpenFields();  await loadJoinOpenFromDB(); }catch{}
+      try{ getPaidChannel(); }catch{}
+      return;
+    }
+
     // 1) event owner shortcut (optional)
     try{
       const { data: ev } = await sb.from('events').select('owner_id').eq('id', currentEventId).maybeSingle();

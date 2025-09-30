@@ -205,14 +205,24 @@ async function getMyEventIds(){
 async function loadSearchDates(){
   const sel = byId('searchDateSelect'); if (!sel) return;
   sel.innerHTML = '<option value="">Pilih tanggal…</option>';
-  const ids = await getMyEventIds();
-  if (!ids.length) return;
+  const isOwner = !!window._isOwnerUser;
+  const ids = isOwner ? [] : await getMyEventIds();
+  if (!isOwner && !ids.length) return;
   try{
     showLoading('Memuat tanggal…');
-    const { data: rows } = await sb.from('event_states')
-      .select('session_date')
-      .in('event_id', ids)
-      .order('session_date', { ascending: false });
+    let rows;
+    if (isOwner) {
+      const r = await sb.from('event_states')
+        .select('session_date')
+        .order('session_date', { ascending: false });
+      rows = r.data;
+    } else {
+      const r = await sb.from('event_states')
+        .select('session_date')
+        .in('event_id', ids)
+        .order('session_date', { ascending: false });
+      rows = r.data;
+    }
     const seen = new Set();
     (rows||[]).forEach(r=>{ if (r.session_date && !seen.has(r.session_date)) { seen.add(r.session_date); const o=document.createElement('option'); o.value=r.session_date; o.textContent=r.session_date; sel.appendChild(o);} });
     // preselect current date if exists; otherwise select latest (first option)
@@ -233,17 +243,28 @@ async function loadSearchEventsForDate(dateStr){
   evSel.innerHTML = '<option value="">Memuat…</option>';
   btnOpen && (btnOpen.disabled = true);
   const delBtn = byId('deleteEventBtn'); if (delBtn) delBtn.disabled = true;
-  const ids = await getMyEventIds();
-  if (!ids.length || !dateStr){ evSel.innerHTML = '<option value="">– Tidak ada –</option>'; return; }
+  const isOwner = !!window._isOwnerUser;
+  const ids = isOwner ? [] : await getMyEventIds();
+  if ((!isOwner && !ids.length) || !dateStr){ evSel.innerHTML = '<option value="">— Tidak ada —</option>'; return; }
   try{
     showLoading('Memuat event…');
-    const { data: states } = await sb.from('event_states')
-      .select('event_id, updated_at')
-      .eq('session_date', dateStr)
-      .in('event_id', ids)
-      .order('updated_at', { ascending: false });
+    let states;
+    if (isOwner) {
+      const r = await sb.from('event_states')
+        .select('event_id, updated_at')
+        .eq('session_date', dateStr)
+        .order('updated_at', { ascending: false });
+      states = r.data;
+    } else {
+      const r = await sb.from('event_states')
+        .select('event_id, updated_at')
+        .eq('session_date', dateStr)
+        .in('event_id', ids)
+        .order('updated_at', { ascending: false });
+      states = r.data;
+    }
     const eids = Array.from(new Set((states||[]).map(r=>r.event_id).filter(Boolean)));
-    if (!eids.length){ evSel.innerHTML = '<option value="">– Tidak ada –</option>'; return; }
+    if (!eids.length){ evSel.innerHTML = '<option value="">— Tidak ada —</option>'; return; }
     const { data: evs } = await sb.from('events').select('id,title').in('id', eids);
     const titleMap = new Map((evs||[]).map(r=>[r.id, r.title || r.id]));
     evSel.innerHTML = '';
