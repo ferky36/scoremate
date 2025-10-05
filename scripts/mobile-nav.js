@@ -89,6 +89,20 @@
     tabs.forEach(t => ul.appendChild(tabItem(t.key, t.label, t.icon)));
     document.body.appendChild(bar);
 
+    // Reduce sticky focus/hover artifacts on mobile browsers
+    try{
+      if (!document.getElementById('mobileTabbarStyles')){
+        const st = document.createElement('style');
+        st.id = 'mobileTabbarStyles';
+        st.textContent = `
+          #mobileTabbar button{ -webkit-tap-highlight-color: transparent; outline: none; }
+          #mobileTabbar button:focus{ outline: none; box-shadow: none; }
+          #mobileTabbar button:focus-visible{ outline: none; box-shadow: none; }
+        `;
+        document.head.appendChild(st);
+      }
+    }catch{}
+
     // Hide Match Recap button on mobile (use the tab instead), keep in DOM for builder reuse
     try{ const rbtn = document.getElementById('btnMatchRecap'); if (rbtn){ const host = rbtn.closest('div')||rbtn; host.style.display='none'; } }catch{}
 
@@ -122,6 +136,8 @@
       all.forEach(b => b.classList.remove('bg-gray-900','text-white'));
       const active = byId(`tab-${key}`);
       if (active) active.classList.add('bg-gray-900','text-white');
+      // Clear focus to avoid sticky focus visuals on mobile
+      try{ active?.blur(); document.activeElement && document.activeElement.blur && document.activeElement.blur(); }catch{}
 
       // Remember current tab for other guards
       try{ window.__mobileTabKey = key; }catch{}
