@@ -65,11 +65,12 @@
     const bar = document.createElement('nav');
     bar.id = 'mobileTabbar';
     bar.setAttribute('role','tablist');
+    // Make navbar consistently dark to avoid white flash/sticky focus look on mobile
     bar.className = [
       'fixed','left-0','right-0','bottom-0','z-40',
-      'bg-white/90','dark:bg-gray-800/90','backdrop-blur',
-      'border-t','border-gray-200','dark:border-gray-700',
-      'shadow-[0_-6px_20px_rgba(0,0,0,0.10)]'
+      'bg-gray-900/95','text-white','backdrop-blur',
+      'border-t','border-gray-800',
+      'shadow-[0_-6px_20px_rgba(0,0,0,0.25)]'
     ].join(' ');
 
     const wrap = document.createElement('div');
@@ -98,6 +99,11 @@
           #mobileTabbar button{ -webkit-tap-highlight-color: transparent; outline: none; }
           #mobileTabbar button:focus{ outline: none; box-shadow: none; }
           #mobileTabbar button:focus-visible{ outline: none; box-shadow: none; }
+          /* Active state follows theme and beats sticky :hover */
+          html:not(.dark) #mobileTabbar button.mobtab-active{ background-color:#111827 !important; color:#ffffff !important; }
+          html:not(.dark) #mobileTabbar button.mobtab-active:hover{ background-color:#111827 !important; }
+          html.dark #mobileTabbar button.mobtab-active{ background-color:#374151 !important; color:#ffffff !important; }
+          html.dark #mobileTabbar button.mobtab-active:hover{ background-color:#374151 !important; }
         `;
         document.head.appendChild(st);
       }
@@ -133,9 +139,9 @@
     function select(key){
       // Active style
       const all = bar.querySelectorAll('button[id^="tab-"]');
-      all.forEach(b => b.classList.remove('bg-gray-900','text-white'));
+      all.forEach(b => b.classList.remove('mobtab-active'));
       const active = byId(`tab-${key}`);
-      if (active) active.classList.add('bg-gray-900','text-white');
+      if (active) active.classList.add('mobtab-active');
       // Clear focus to avoid sticky focus visuals on mobile
       try{ active?.blur(); document.activeElement && document.activeElement.blur && document.activeElement.blur(); }catch{}
 
