@@ -175,9 +175,16 @@
         }
       }
 
-      // Recap/Insight: leverage existing modal button (no logic changes)
-      if (key==='recap') buildRecapInline(hostRecap);
-      if (key==='insight') buildInsightInline(hostInsight);
+      // Make sure the courts toolbar section follows the active tab visibility,
+      // even if it was not rehosted (e.g., before joining/creating an event).
+      try{
+        const ts = document.getElementById('toolbarSection');
+        if (ts) ts.classList.toggle('hidden', key !== 'jadwal');
+      }catch{}
+
+      // Recap/Insight: only build jika ada data event
+      if (key==='recap') { if (hasEventData()) buildRecapInline(hostRecap); else hostRecap.innerHTML=''; }
+      if (key==='insight') { if (hasEventData()) buildInsightInline(hostInsight); else hostInsight.innerHTML=''; }
 
       // Enforce visibility guard in case other scripts toggle it afterwards
       try{ enforcePlayersSectionVisibility(); }catch{}
@@ -604,6 +611,15 @@ function enforcePlayersSectionVisibility(){
   const vp = document.getElementById('viewerPlayersWrap');
   const shouldShowViewer = (key === 'jadwal') && isView;
   if (vp) vp.classList.toggle('hidden', !shouldShowViewer);
+}
+
+// Cek minimal apakah ada data event untuk menampilkan konten recap/insight
+function hasEventData(){
+  try{ if (typeof currentEventId !== 'undefined' && currentEventId) return true; }catch{}
+  try{ if (Array.isArray(window.players) && window.players.length>0) return true; }catch{}
+  try{ const cc = document.getElementById('courtContainer'); if (cc && cc.children.length>0) return true; }catch{}
+  try{ const sb = document.querySelector('#standings tbody'); if (sb && sb.children.length>0) return true; }catch{}
+  return false;
 }
 
 // Debounced refresh of recap when courts/standings DOM mutate (switch event)
