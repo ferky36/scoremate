@@ -107,8 +107,10 @@
     window.addEventListener('beforeinstallprompt', (e)=>{
       e.preventDefault();
       window.__deferredPrompt = e;
-      const b = ensureInstallButton();
-      b.style.display='inline-block';
+      // Do not show if already installed before
+      try{ if (localStorage.getItem('pwaInstalled')==='1') return; }catch{}
+      // Show tooltip with actions instead of floating button
+      showInstallTooltip();
       const hdrBtn = byId('btnInstallAppHdr'); if (hdrBtn) hdrBtn.classList.remove('hidden');
     });
 
@@ -116,25 +118,81 @@
       const b = byId('pwaInstallBtn'); if (b) b.style.display='none';
       const hb = byId('btnInstallAppHdr'); if (hb) hb.classList.add('hidden');
       window.__deferredPrompt = null;
+      try{ localStorage.setItem('pwaInstalled','1'); }catch{}
+      try{ byId('pwaInstallTip')?.remove(); }catch{}
     });
 
-    // iOS tip (no beforeinstallprompt). Show a subtle tip only once.
+    // iOS tip (no beforeinstallprompt). Show a tooltip once.
     try{
       const ua = navigator.userAgent || '';
       const isiOS = /iphone|ipad|ipod/i.test(ua);
       const inSafari = /safari/i.test(ua) && !/crios|fxios/i.test(ua);
-      if (isiOS && inSafari && !isStandalone() && !localStorage.getItem('pwaTipShown')){
-        const tip = document.createElement('div');
-        tip.id='pwaInstallTip';
-        tip.style.cssText = 'position:fixed;left:10px;right:10px;bottom:14px;z-index:70;background:#0f172a;color:#e5e7eb;border:1px solid #334155;padding:10px 12px;border-radius:12px;font-size:13px;box-shadow:0 8px 20px rgba(0,0,0,.2)';
-        tip.innerHTML = 'Untuk memasang aplikasi: buka menu Share, lalu pilih <b>Add to Home Screen</b>.';
-        const close = document.createElement('button');
-        close.textContent='Tutup';
-        close.style.cssText='margin-left:8px;padding:4px 8px;border:1px solid #475569;background:transparent;color:#e5e7eb;border-radius:8px;float:right';
-        close.onclick = ()=>{ tip.remove(); localStorage.setItem('pwaTipShown','1'); };
-        tip.appendChild(close); document.body.appendChild(tip);
+      if (isiOS && inSafari && !isStandalone() && !localStorage.getItem('pwaTipShown') && !localStorage.getItem('pwaInstalled')){
+        showInstallTooltip(true);
       }
     }catch{}
+  }
+
+  // Tooltip with two actions: Install to Device, Not now
+  function showInstallTooltip(isIOSHelp){
+    try{ byId('pwaInstallTip')?.remove(); }catch{}
+    const tip = document.createElement('div');
+    tip.id='pwaInstallTip';
+    tip.style.cssText = [
+      'position:fixed','left:10px','right:10px','bottom:14px','z-index:70',
+      'background:#0f172a','color:#e5e7eb','border:1px solid #334155',
+      'padding:10px 12px','border-radius:14px','font-size:13px',
+      'box-shadow:0 8px 20px rgba(0,0,0,.2)'
+    ].join(';');
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:12px;';
+
+    // Left icon
+    const ico = document.createElement('div');
+    ico.style.cssText = 'width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#34d399,#059669);display:grid;place-items:center;flex:0 0 auto;';
+    ico.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="1.5"><circle cx="12" cy="8" r="3.5" fill="#d1fae5"/><path d="M4 20c.8-3.5 4.1-6 8-6s7.2 2.5 8 6" fill="#a7f3d0"/></svg>';
+
+    // Texts
+    const texts = document.createElement('div');
+    texts.style.cssText = 'flex:1 1 auto; min-width:0;';
+    const h = document.createElement('div'); h.style.cssText='font-weight:700;'; h.textContent='Pasang ScoreMate ke perangkat?';
+    const p = document.createElement('div'); p.style.cssText='opacity:.9;color:#cbd5e1;'; p.textContent='Akses lebih cepat, hemat data, bisa offline.';
+    texts.appendChild(h); texts.appendChild(p);
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex; gap:8px; align-items:center;';
+    const later = document.createElement('button');
+    later.textContent = 'Nanti';
+    later.style.cssText = 'padding:6px 12px;border-radius:10px;background:transparent;color:#e5e7eb;border:1px solid #475569;font-weight:600';
+    const install = document.createElement('button');
+    install.textContent = 'Pasang';
+    install.style.cssText = 'padding:6px 12px;border-radius:10px;background:#10b981;color:#0b1020;border:1px solid #059669;font-weight:700';
+
+    // Close (top-right micro x)
+    const close = document.createElement('button'); close.textContent='×';
+    close.style.cssText = 'position:absolute;right:10px;top:2px;border:none;background:transparent;color:#94a3b8;font-size:16px;cursor:pointer';
+    close.onclick = ()=>{ try{ localStorage.setItem('pwaTipShown','1'); }catch{} tip.remove(); };
+
+    install.onclick = async ()=>{
+      if (window.__deferredPrompt){
+        try{
+          await window.__deferredPrompt.prompt();
+          const choice = await window.__deferredPrompt.userChoice;
+          if (choice?.outcome === 'accepted') { window.__deferredPrompt = null; try{ localStorage.setItem('pwaInstalled','1'); }catch{} tip.remove(); }
+        }catch{}
+      } else {
+        // iOS or not available: show help overlay
+        showHelpOverlay();
+        tip.remove();
+      }
+    };
+    later.onclick = ()=>{ try{ localStorage.setItem('pwaTipShown','1'); }catch{} tip.remove(); };
+
+    actions.appendChild(later); actions.appendChild(install);
+    row.appendChild(ico); row.appendChild(texts); row.appendChild(actions);
+    tip.appendChild(row); tip.appendChild(close); document.body.appendChild(tip);
   }
 
   if (document.readyState==='loading'){
