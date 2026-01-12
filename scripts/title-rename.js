@@ -1,8 +1,13 @@
 "use strict";
 // ======== Title Rename (Editor only) ========
+const __trT = (k,f)=> (window.__i18n_get ? __i18n_get(k,f) : f);
 function ensureTitleEditor(){
   const h = byId('appTitle');
   if (!h) return;
+  try{
+    if (typeof isViewer === 'function' && isViewer()) return;
+    if (typeof isOwnerNow === 'function' && !isOwnerNow()) return;
+  }catch{}
   let wrap = byId('titleEditWrap');
   if (!wrap){
     wrap = document.createElement('span');
@@ -10,7 +15,7 @@ function ensureTitleEditor(){
     wrap.className = 'inline-flex items-center gap-1 ml-2 align-middle';
     const btn = document.createElement('button');
     btn.id = 'btnTitleEdit';
-    btn.title = 'Rename Event';
+    btn.title = __trT('title.rename','Rename Event');
     btn.className = 'px-1.5 py-0.5 text-xs rounded border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700';
     btn.textContent = '✎';
     btn.addEventListener('click', startTitleEdit);
@@ -20,8 +25,7 @@ function ensureTitleEditor(){
 }
 
 function startTitleEdit(){
-  if (isViewer && isViewer()) return;
-  if (!currentEventId || !isCloudMode()) return;
+  try{ if (typeof isViewer==='function' && isViewer()) return; }catch{}
   const h = byId('appTitle');
   const wrap = byId('titleEditWrap');
   if (!h || !wrap) return;
@@ -39,13 +43,13 @@ function startTitleEdit(){
   input.value = orig;
   // responsive width: cukup nyaman di mobile/desktop
   input.className = 'border rounded px-2 py-1 text-sm bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700 placeholder-gray-400 dark:placeholder-gray-400 w-[60vw] max-w-[18rem] sm:max-w-[20rem]';
-  input.placeholder = 'Nama event';
+  input.placeholder = __trT('title.placeholder','Nama event');
   const btnOk = document.createElement('button');
-  btnOk.title = 'Simpan';
+  btnOk.title = __trT('title.save','Simpan');
   btnOk.className = 'px-2 py-1 text-xs rounded bg-emerald-600 text-white';
   btnOk.textContent = '✓';
   const btnCancel = document.createElement('button');
-  btnCancel.title = 'Batal';
+  btnCancel.title = __trT('title.cancel','Batal');
   btnCancel.className = 'px-2 py-1 text-xs rounded border dark:border-gray-600';
   btnCancel.textContent = '✕';
   edit.append(input, btnOk, btnCancel);
@@ -59,15 +63,42 @@ function startTitleEdit(){
   });
   btnOk.addEventListener('click', async ()=>{
     const val = (input.value||'').trim();
-    if (!val){ showToast?.('Nama event tidak boleh kosong','warn'); return; }
+    if (!val){ try{ showToast?.(__trT('title.empty','Nama event tidak boleh kosong'),'warn'); }catch{} return; }
     try{
-      showLoading('Menyimpan nama event…');
-      const { data, error } = await sb.from('events').update({ title: val }).eq('id', currentEventId).select('id').maybeSingle();
-      if (error) throw error;
-      setAppTitle(val);
-      showToast?.('Nama event disimpan','success');
-    }catch(e){ console.error(e); showToast?.('Gagal menyimpan: ' + (e?.message||''), 'error'); }
-    finally{ hideLoading(); cleanup(); }
+      // Cloud mode: simpan ke DB, lainnya: set local saja
+      const inCloud = (typeof isCloudMode==='function' && isCloudMode() && !!window.currentEventId);
+      if (inCloud){
+        showLoading?.(__trT('title.saving','Menyimpan nama event…'));
+        const { error } = await sb.from('events').update({ title: val }).eq('id', currentEventId);
+        if (error) throw error;
+        setAppTitle(val);
+        try{ showToast?.(__trT('title.saved','Nama event disimpan'),'success'); }catch{}
+        try{ await maybeAutoSaveCloud?.(); }catch{}
+      } else {
+        setAppTitle(val);
+        try{ markDirty?.(); }catch{}
+        try{ showToast?.(__trT('title.changed','Nama event diubah'),'success'); }catch{}
+      }
+    }catch(e){ console.error(e); try{ showToast?.(__trT('title.saveFail','Gagal menyimpan: {msg}').replace('{msg}', (e?.message||'')), 'error'); }catch{} }
+    finally{ hideLoading?.(); cleanup(); }
   });
   try{ input.focus(); input.select(); }catch{}
 }
+
+// Ensure document.title uses clean separator regardless of prior encoding
+try{
+  if (typeof setAppTitle === 'function'){
+    const _orig = setAppTitle;
+    setAppTitle = function(title){
+      _orig(title);
+      if (title) document.title = title + ' – Mix Americano';
+    };
+  }
+}catch{}
+
+// Ensure editor button exists after DOM ready (in case other scripts didn't call it)
+(function ensureTitleBoot(){
+  function boot(){ try{ ensureTitleEditor(); }catch{} }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();

@@ -15,9 +15,20 @@ function toLocalTimeValue(iso) {
     return `${hh}:${mi}`; } catch { return ''; }
 }
 function combineDateTimeToISO(dateStr, timeStr) {
-  try { if (!dateStr || !timeStr) return null;
-    const dt = new Date(`${dateStr}T${timeStr}`);
-    return isNaN(dt.getTime()) ? null : dt.toISOString(); } catch { return null; }
+  try {
+    if (!dateStr || !timeStr) return null;
+    const [hh,mm] = String(timeStr).split(':').map(n=>parseInt(n||'0',10));
+    if (![hh,mm].every(Number.isFinite)) return null;
+    const hhStr = String(hh).padStart(2,'0');
+    const mmStr = String(mm).padStart(2,'0');
+    // Simpan dengan offset lokal (mis. +07:00) agar DB timestamptz tahu zona, tapi epoch tetap UTC
+    const localDate = new Date(`${dateStr}T${hhStr}:${mmStr}:00`);
+    const offsetMinutes = localDate.getTimezoneOffset(); // negatif untuk GMT+
+    const sign = offsetMinutes <= 0 ? '+' : '-';
+    const offH = String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2,'0');
+    const offM = String(Math.abs(offsetMinutes) % 60).padStart(2,'0');
+    return `${dateStr}T${hhStr}:${mmStr}:00${sign}${offH}:${offM}`;
+  } catch { return null; }
 }
 function isJoinOpen() {
   try { if (!window.joinOpenAt) return true;

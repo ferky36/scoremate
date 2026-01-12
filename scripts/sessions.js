@@ -12,6 +12,12 @@ function currentPayload(){
     playerMeta,             // <<< tambahkan ini
     // simpan limit pemain dalam state juga (null = tak terbatas)
     maxPlayers: (Number.isInteger(currentMaxPlayers) && currentMaxPlayers > 0) ? currentMaxPlayers : null,
+    // simpan HTM agar ikut terserialisasi ke state
+    htm: (function(){
+      try{ const x = document.getElementById('spHTM'); if (x && x.value) return Number(x.value)||0; }catch{}
+      try{ if (typeof window.__htmAmount !== 'undefined') return Number(window.__htmAmount)||0; }catch{}
+      try{ return Number(localStorage.getItem('event.htm.' + (window.currentEventId||'local'))||0)||0; }catch{ return 0; }
+    })(),
 
     // 🔹 format baru
     roundsByCourt,
@@ -54,6 +60,14 @@ function renderFilterSummary(){
   const br = byId('breakPerRound')?.value || '0';
   const showBr = !!byId('showBreakRows')?.checked;
   const r = byId('roundCount')?.value || '';
+  // Ambil HTM: prioritas dari input popup (spHTM) jika ada, lalu localStorage
+  let htm = 0;
+  try {
+    const inp = document.getElementById('spHTM');
+    if (inp && inp.value) htm = Number(inp.value)||0;
+    else if (typeof window.__htmAmount!=='undefined'){ htm = Number(window.__htmAmount)||0; } else { htm = Number(localStorage.getItem('event.htm.' + (window.currentEventId||'local'))||0) || 0; }
+  } catch {}
+  try { window.__htmAmount = htm; } catch {}
 
   function fmtDateLabel(iso){
     if (!iso) return '-';
@@ -91,6 +105,10 @@ function renderFilterSummary(){
             <div class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">Match/Lapangan</div>
             <div class="mt-1 font-medium">${r || '-'}</div>
           </div>
+          <div>
+            <div class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">HTM</div>
+            <div class="mt-1 font-medium" id="summaryHTM">Rp${(htm||0).toLocaleString('id-ID')}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -116,7 +134,7 @@ let _autoSaveTimer = null;
 
 // Wrapper util untuk menampilkan loading saat menyimpan ke Cloud
 async function saveStateToCloudWithLoading(){
-  showLoading('Menyimpan ke Cloud…');
+  showLoading((window.__i18n_get ? __i18n_get('sessions.savingCloud','Menyimpan ke Cloud…') : 'Menyimpan ke Cloud…'));
   try{ return await saveStateToCloud(); }
   finally{ hideLoading(); }
 }
@@ -152,9 +170,11 @@ function initCloudFromUrl() {
 
   // Load access role if in cloud mode (skip elevation if forced viewer)
   if (currentEventId && !_forceViewer) {
-    (async ()=>{ const ok = await ensureEventExistsOrReset(); if (ok) loadAccessRoleFromCloud?.(); else applyAccessMode(); })();
+    (async ()=>{ const ok = await ensureEventExistsOrReset(); if (ok) { await loadAccessRoleFromCloud?.(); try{ updateMobileCashTab?.(); }catch{} } else { applyAccessMode(); try{ updateMobileCashTab?.(); }catch{} } })();
   } else {
     applyAccessMode();
+    // Even in forced viewer, compute cash-admin flag so Cashflow button can appear
+    try{ ensureCashAdminFlag?.(); updateMobileCashTab?.(); }catch{}
   }
   try{ updateAdminButtonsVisibility?.(); }catch{}
 
@@ -164,7 +184,7 @@ function initCloudFromUrl() {
       try{
         const meta = await fetchEventMetaFromDB(currentEventId);
         if (meta?.title) setAppTitle(meta.title);
-        renderEventLocation(meta?.location_text || '', meta?.location_url || '');
+        renderEventLocation(meta?.location_text || '', meta?.location_url || ''); try{ window.__htmAmount = Number(meta?.htm||0)||0; const s=document.getElementById('summaryHTM'); if(s){ s.textContent='Rp'+(window.__htmAmount||0).toLocaleString('id-ID'); } }catch{};
         try{ ensureLocationFields(); await loadLocationFromDB(); }catch{}
         try{ renderHeaderChips(); }catch{}
       }catch{}
@@ -185,7 +205,9 @@ function initCloudFromUrl() {
           if (!accErr && accData){
             // Jika RPC mengembalikan event_id/role, sinkronkan lokal
             if (accData.event_id && !currentEventId) currentEventId = accData.event_id;
-            loadAccessRoleFromCloud?.();
+            try{ clearViewerParams(); }catch{}
+            _forceViewer = false;
+            loadAccessRoleFromCloud?.(); try{ updateMobileCashTab?.(); }catch{}
             return; // selesai
           }
         }catch{}
@@ -211,11 +233,24 @@ function initCloudFromUrl() {
         // tandai accepted (best effort)
         try{ await sb.from('event_invites').update({ accepted_at: new Date().toISOString() }).eq('token', p.invite); }catch{}
 
-        // refresh akses
-        loadAccessRoleFromCloud?.();
+        // refresh akses dan bersihkan param viewer yang mungkin tersisa di URL
+        try{ clearViewerParams(); }catch{}
+        _forceViewer = false;
+        loadAccessRoleFromCloud?.(); try{ updateMobileCashTab?.(); }catch{}
       }catch(e){ console.warn('accept-invite failed', e); }
     })();
   }
+}
+
+// Hapus param yang memaksa viewer dari URL agar peran baru terpakai
+function clearViewerParams(){
+  try{
+    const u = new URL(location.href);
+    let changed = false;
+    if (u.searchParams.has('view')){ u.searchParams.delete('view'); changed = true; }
+    if (u.searchParams.has('role')){ u.searchParams.delete('role'); changed = true; }
+    if (changed) history.replaceState({}, document.title, u.toString());
+  }catch{}
 }
 
 
@@ -250,7 +285,7 @@ function markSaved(ts) {
 }
 function saveToStore() {
   const raw = byId("sessionDate").value || new Date().toISOString().slice(0,10);
-  if (!raw) { alert("Isi tanggal dulu ya."); return false; }
+  if (!raw) { showToast?.(window.__i18n_get ? __i18n_get('sessions.dateRequired','Isi tanggal dulu ya.') : "Isi tanggal dulu ya.", 'warn'); return false; }
 
   const d = normalizeDateKey(raw);
   const payload = currentPayload();
@@ -401,10 +436,10 @@ function loadJSONFromFile(file){
 
       store = incoming;
       // removed: populateDatePicker UI
-      alert('JSON dimuat.');
+      showToast?.(window.__i18n_get ? __i18n_get('sessions.jsonLoaded','JSON dimuat.') : 'JSON dimuat.', 'success');
     }catch(e){
       console.error(e);
-      alert('File JSON tidak valid.');
+      showToast?.(window.__i18n_get ? __i18n_get('sessions.jsonInvalid','File JSON tidak valid.') : 'File JSON tidak valid.', 'error');
     }
   };
   r.readAsText(file);
@@ -412,11 +447,11 @@ function loadJSONFromFile(file){
 
 function loadSessionByDate(){
   // removed: no UI to pick arbitrary local dates
-  alert('Fitur muat berdasarkan tanggal lokal dinonaktifkan.');
+  showToast?.(window.__i18n_get ? __i18n_get('sessions.featureOff','Fitur muat berdasarkan tanggal lokal dinonaktifkan.') : 'Fitur muat berdasarkan tanggal lokal dinonaktifkan.', 'info');
   return;
 
   let data = store.sessions[d];
-  if(!data){ alert('Tidak ada data untuk tanggal tsb.'); return; }
+  if(!data){ showToast?.(window.__i18n_get ? __i18n_get('sessions.noData','Tidak ada data untuk tanggal tsb.') : 'Tidak ada data untuk tanggal tsb.', 'warn'); return; }
   if (byId('breakPerRound'))  byId('breakPerRound').value  = data.breakPerRound ?? '1';
   if (byId('showBreakRows'))  byId('showBreakRows').checked = !!data.showBreakRows;
 
@@ -472,6 +507,28 @@ function normalizeLoadedSession(data){
 }
 
 
+// Ensure the latest visible score inputs in the active court table are reflected in roundsByCourt before serializing
+function syncVisibleScoresToState(){
+  try{
+    const table = document.querySelector('.rnd-table tbody');
+    if (!table) return;
+    const rows = table.querySelectorAll('tr[data-index]');
+    rows.forEach(tr => {
+      const idx = Number(tr.getAttribute('data-index'));
+      if (!Number.isFinite(idx)) return;
+      const aInp = tr.querySelector('.rnd-scoreA input');
+      const bInp = tr.querySelector('.rnd-scoreB input');
+      const aVal = aInp ? onlyDigits(aInp.value) : '';
+      const bVal = bInp ? onlyDigits(bInp.value) : '';
+      const arr = roundsByCourt[activeCourt] || [];
+      const r = arr[idx];
+      if (!r) return;
+      r.scoreA = aVal;
+      r.scoreB = bVal;
+    });
+  }catch{}
+}
+
 function startAutoSave() {
   clearInterval(window._autosaveTick);
   window._autosaveTick = setInterval(async () => {
@@ -484,3 +541,8 @@ function startAutoSave() {
     }
   }, 1800000); // 30 menit
 }
+
+
+
+
+// (removed getEffectiveRoundsSnapshot wrapper to follow original score-modal flow)

@@ -1,9 +1,9 @@
 {
-  "name": "Scoremate",
-  "short_name": "Scoremate",
-  "id": "/scoremate/",
-  "start_url": "/scoremate/",
-  "scope": "/scoremate/",
+  "name": "ScoreMate",
+  "short_name": "ScoreMate",
+  "id": ".",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#4f46e5",
@@ -13,13 +13,13 @@
       "src": "icons/icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "icons/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }

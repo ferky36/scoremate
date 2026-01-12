@@ -18,3 +18,9 @@ let scoreCtx = {
   remainMs: 0,        // ⬅️ baru (millisecond)
   running: false      // ⬅️ baru
 };
+// Expose to window for module access
+window.activeCourt = activeCourt;
+window.roundsByCourt = roundsByCourt;
+window.players = players;
+window.playerMeta = playerMeta;
+window.scoreCtx = scoreCtx;

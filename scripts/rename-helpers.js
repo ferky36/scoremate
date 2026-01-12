@@ -1,4 +1,6 @@
 "use strict";
+const __renameT = (k,f)=> (window.__i18n_get ? __i18n_get(k,f) : f);
+const __renameEscape = (s)=> String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // ===== Rename helpers (robust mapping for multi-rename) =====
 function _normName(s){ return String(s||'').trim().toLowerCase(); }
 function _lev(a,b){
@@ -58,18 +60,18 @@ function computeRenamePairs(oldActive, newActive){
   return pairs;
 }
 
-// Pastikan event masih ada. Jika sudah dihapus/tidak ada, reset ke mode lokal dan buka modal Cari Event.
-async function ensureEventExistsOrReset(){
-  try{
-    if (!isCloudMode() || !currentEventId) return true;
-    const { data, error } = await sb.from('events').select('id').eq('id', currentEventId).maybeSingle();
-    if (error || !data?.id){
-      showToast?.('Event tidak ditemukan atau sudah dihapus.', 'warn');
-      try{ leaveEventMode?.(true); }catch{}
-      try{ openSearchEventModal?.(); }catch{}
-      return false;
-    }
-    return true;
+  // Pastikan event masih ada. Jika sudah dihapus/tidak ada, reset ke mode lokal dan buka modal Cari Event.
+  async function ensureEventExistsOrReset(){
+    try{
+      if (!isCloudMode() || !currentEventId) return true;
+      const { data, error } = await sb.from('events').select('id').eq('id', currentEventId).maybeSingle();
+      if (error || !data?.id){
+        showToast?.(__renameT('rename.eventMissing','Event tidak ditemukan atau sudah dihapus.'), 'warn');
+        try{ leaveEventMode?.(true); }catch{}
+        try{ openSearchEventModal?.(); }catch{}
+        return false;
+      }
+      return true;
   }catch(e){ console.warn('ensureEventExistsOrReset failed', e); return true; }
 }
 
@@ -80,7 +82,7 @@ function autoPromoteIfSlot(){
   if (!Array.isArray(waitingList) || waitingList.length === 0) return;
   const nm = waitingList.shift();
   if (!players.includes(nm)) players.push(nm);
-  showToast('Memindahkan '+ nm +' dari waiting list', 'info');
+  showToast(__renameT('rename.waitingMove','Memindahkan {name} dari waiting list').replace('{name}', nm), 'info');
   return nm;
 }
 
@@ -96,20 +98,20 @@ function promoteAllFromWaiting(){
     }
   }
   if (moved > 0){
-    showToast('Promote '+moved+' pemain dari waiting list', 'success');
+    showToast(__renameT('rename.promote','Promote {count} pemain dari waiting list').replace('{count}', moved), 'success');
     markDirty();
     renderPlayersList();
     renderAll?.();
   } else {
-    if (players.length >= cap) showToast('List aktif penuh. Hapus/geser pemain dulu.', 'warn');
-    else showToast('Tidak ada pemain di waiting list.', 'info');
+    if (players.length >= cap) showToast(__renameT('rename.listFull','List aktif penuh. Hapus/geser pemain dulu.'), 'warn');
+    else showToast(__renameT('rename.waitingEmpty','Tidak ada pemain di waiting list.'), 'info');
   }
 }
 
 function promoteFromWaiting(name){
   const cap = (Number.isInteger(currentMaxPlayers) && currentMaxPlayers > 0) ? currentMaxPlayers : Infinity;
   if (players.includes(name)) return;
-  if (players.length >= cap){ showToast('List aktif penuh. Hapus/geser pemain dulu.', 'warn'); return; }
+  if (players.length >= cap){ showToast(__renameT('rename.listFull','List aktif penuh. Hapus/geser pemain dulu.'), 'warn'); return; }
   const idx = (waitingList||[]).indexOf(name);
   if (idx >= 0) waitingList.splice(idx,1);
   players.push(name);
@@ -119,9 +121,38 @@ function promoteFromWaiting(name){
   try{ maybeAutoSaveCloud(); }catch{}
 }
 
-function removeFromWaiting(name){
+async function removeFromWaiting(name){
   const target = String(name||'').trim().toLowerCase();
-  if (!confirm('Hapus '+name+' dari waiting list?')) return;
+  let ok = false;
+  try{
+    if (typeof askYesNo === 'function') ok = await askYesNo(__renameT('rename.waitingRemoveConfirm','Hapus {name} dari waiting list?').replace('{name}', name));
+    else {
+      if (!window.__ynModal){
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);';
+        const panel = document.createElement('div');
+        panel.style.cssText = 'background:#fff;padding:16px 18px;border-radius:12px;max-width:340px;width:92%;box-shadow:0 12px 28px rgba(0,0,0,0.25);';
+        const txt = document.createElement('div'); txt.style.cssText='font-weight:600;margin-bottom:12px;color:#111;white-space:pre-line;'; panel.appendChild(txt);
+        const row = document.createElement('div'); row.style.cssText='display:flex;gap:10px;justify-content:flex-end;'; panel.appendChild(row);
+        const bNo = document.createElement('button'); bNo.textContent='Tidak'; bNo.style.cssText='padding:8px 12px;border-radius:10px;border:1px solid #d1d5db;background:#fff;color:#111;';
+        const bYes = document.createElement('button'); bYes.textContent='Ya'; bYes.style.cssText='padding:8px 12px;border-radius:10px;background:#2563eb;color:#fff;border:0;';
+        row.append(bNo,bYes); overlay.appendChild(panel); document.body.appendChild(overlay);
+        window.__ynModal = { overlay, txt, bNo, bYes };
+      }
+      const { overlay, txt, bNo, bYes } = window.__ynModal;
+      ok = await new Promise(res=>{
+        txt.textContent = __renameT('rename.waitingRemoveConfirm','Hapus {name} dari waiting list?').replace('{name}', name);
+        overlay.style.display = 'flex';
+        const cleanup = (v)=>{ overlay.style.display='none'; bNo.onclick=bYes.onclick=null; res(v); };
+        bYes.onclick = ()=> cleanup(true);
+        bNo.onclick  = ()=> cleanup(false);
+        overlay.onclick = (e)=>{ if (e.target===overlay) cleanup(false); };
+      });
+    }
+  }catch{
+    ok = false;
+  }
+  if (!ok) { showToast?.(__renameT('rename.waitingRemoveCancelled','Batal hapus {name} dari waiting list.').replace('{name}', name), 'info'); return; }
   if (!Array.isArray(waitingList)) waitingList = [];
   for (let i = waitingList.length - 1; i >= 0; i--) {
     if (String(waitingList[i]||'').trim().toLowerCase() === target) {
@@ -202,7 +233,7 @@ function validateNames(){
   if (dups.length){
     items.push(
       "<div class='text-amber-600'>Duplikat nama: " +
-      dups.map(([a,b])=> players[a] + " ↔ " + players[b]).join(', ') +
+      dups.map(([a,b])=> __renameEscape(players[a]) + " & " + __renameEscape(players[b])).join(", ") +
       "</div>"
     );
   }
@@ -218,7 +249,7 @@ function validateNames(){
     if (dups2.length){
       const filtered = items.filter(s => !s.startsWith("<div class='text-amber-600'>Duplikat nama:"));
       const fixed = "<div class='text-amber-600'>Duplikat nama: " +
-                    dups2.map(([a,b])=> players[a] + " & " + players[b]).join(', ') +
+                    dups2.map(([a,b])=> __renameEscape(players[a]) + " & " + __renameEscape(players[b])).join(", ") +
                     "</div>";
       items.length = 0; items.push(...filtered, fixed);
     }
@@ -234,8 +265,9 @@ function validateNames(){
   }
   if (sugg.length){
     items.push(
-      "<div class='text-blue-600'>Mirip (cek typo): " +
-      sugg.map(([a,b])=> a + " ~ " + b).join(', ') +
+      "<div class='text-blue-600'>" +
+      __renameT('rename.similar','Mirip (cek typo): {pairs}')
+        .replace('{pairs}', sugg.map(([a,b])=> __renameEscape(a) + " ~ " + __renameEscape(b)).join(", ")) +
       "</div>"
     );
   }
@@ -257,20 +289,28 @@ function validateNames(){
 
     if (pm === 'mixed' && missingGender.length){
       items.push(
-        "<div class='text-rose-600'>Mode Mixed: " +
-        "Lengkapi <b>Gender</b> untuk: " + missingGender.join(', ') + ".</div>"
+        "<div class='text-rose-600'>" +
+        __renameT('rename.mixedMissing','Mode Mixed: Lengkapi <b>Gender</b> untuk: {names}.')
+          .replace('{names}', missingGender.map(__renameEscape).join(", ")) +
+        "</div>"
       );
     }
     if ((pm === 'lvl_bal' || pm === 'lvl_same') && missingLevel.length){
       items.push(
-        "<div class='text-rose-600'>Mode Level: " +
-        "Lengkapi <b>Level</b> (beg/pro) untuk: " + missingLevel.join(', ') + ".</div>"
+        "<div class='text-rose-600'>" +
+        __renameT('rename.levelMissing','Mode Level: Lengkapi <b>Level</b> (beg/pro) untuk: {names}.')
+          .replace('{names}', missingLevel.map(__renameEscape).join(", ")) +
+        "</div>"
       );
     }
 
     // Hint kecil untuk mengarahkan user
     if ((pm==='mixed' && missingGender.length) || ((pm==='lvl_bal'||pm==='lvl_same') && missingLevel.length)){
-      items.push("<div class='text-xs text-gray-500 mt-1'>Atur di list pemain (dropdown kecil di tiap nama).</div>");
+      items.push(
+        "<div class='text-xs text-gray-500 mt-1'>" +
+        __renameT('rename.hintMeta','Atur di list pemain (dropdown kecil di tiap nama).') +
+        "</div>"
+      );
     }
   }
 

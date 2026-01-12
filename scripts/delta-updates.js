@@ -61,7 +61,7 @@ function applyMinorRoundDelta(newState){
         byId('scoreBVal').textContent = scoreCtx.b;
         const startBtn = byId('btnStartTimer');
         if (target.startedAt){ if (startBtn) startBtn.classList.add('hidden'); setScoreModalPreStart(false); }
-        if (target.finishedAt){ setScoreModalLocked(true); const t = byId('scoreTimer'); if (t) t.textContent='Permainan Selesai'; }
+        if (target.finishedAt){ setScoreModalLocked(true); const t = byId('scoreTimer'); if (t) t.textContent = (window.__i18n_get ? __i18n_get('score.finished','Permainan Selesai') : 'Permainan Selesai'); }
       }
     }catch{}
 
@@ -144,7 +144,13 @@ function highlightPlayer(name){
 
   function handleRowChange(payload){
     try{
+      try{ if (window.__suppressCloudUntil && Date.now() < window.__suppressCloudUntil) return; }catch{}
       const row = payload?.new || payload?.old || {};
+      try {
+        if (typeof _serverVersion !== 'undefined' && row && typeof row.version === 'number'){
+          if (row.version < _serverVersion) return; // ignore stale alt realtime payload
+        }
+      } catch {}
       const raw = (row && (row.session_date ?? row.sessionDate)) ?? null;
       if (raw){
         let key = '';

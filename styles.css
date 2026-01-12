@@ -1,6 +1,25 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
 :root { --ui-zoom: 100%; }
-body { font-size: clamp(14px, calc(14px * var(--ui-zoom) / 100), 20px); }
+body { font-size: clamp(14px, calc(14px * var(--ui-zoom) / 100), 20px); font-family: 'Outfit', sans-serif; }
+.lang-toggle{
+  padding:6px 10px; border-radius:12px;
+  background:rgba(255,255,255,.18); color:#fff;
+  font-weight:700; font-size:.9rem;
+  border:1px solid rgba(255,255,255,.25);
+  box-shadow:0 4px 10px rgba(0,0,0,.12);
+}
+.lang-toggle .flag{display:inline-flex; align-items:center; justify-content:center; line-height:1; font-size:1rem;}
+.lang-toggle .flag{
+  width:20px; height:14px; padding:0;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.lang-toggle .flag-svg{ width:100%; height:100%; display:block; }
+.dark .lang-toggle{background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.24); color:#fff;}
+.lang-toggle .en-flag{opacity:.6; filter: grayscale(1);}
+.lang-toggle.lang-en .en-flag{opacity:1; filter: grayscale(0);}
+.lang-toggle.lang-en .id-flag{opacity:.6; filter: grayscale(1);}
 
 /* Tabs */
 .tab-active { border-color:#111827; color:#111827; }
@@ -42,9 +61,25 @@ body { font-size: clamp(14px, calc(14px * var(--ui-zoom) / 100), 20px); }
   header .mx-auto .flex.items-start > div:first-child{ display:none !important; }
 }
 
+/* Full-width Menu button on mobile */
+@media (max-width: 767px){
+  #btnHdrMenu{
+    display:block;
+    width: calc(100% - 2rem); /* align with header px-4 */
+    margin: 6px 1rem 0 1rem;
+    background:#ffffff !important;
+    color:#4f46e5 !important; /* indigo-600 */
+    border:2px solid #ffffff !important; /* inner white ring */
+    box-shadow: 0 0 0 2px rgba(99,102,241,1) !important; /* outer purple ring */
+    border-radius: 14px !important;
+    font-weight:700;
+    text-align:center;
+  }
+}
+
 /* Make header action buttons full-width on mobile without changing HTML */
 #hdrControls > button { width:100%; }
-@media (min-width:768px){ #hdrControls > button { width:auto; } }
+@media (min-width:768px){ #hdrControls > button { width:auto; border-radius:12px; } }
 .filter-slide { animation:slideDown .18s ease-out; }
 /* Make controls look like soft pills */
 @media (min-width:768px){
@@ -52,14 +87,14 @@ body { font-size: clamp(14px, calc(14px * var(--ui-zoom) / 100), 20px); }
   header .mx-auto{ gap: 18px; }
   #hdrChips{ align-items:center; gap:10px; }
   #hdrControls{
-    display:flex; align-items:center; gap:10px;
+    display:flex; align-items:center; gap:10px; justify-content:flex-end;
     background:linear-gradient(90deg, rgba(255,255,255,.18), rgba(255,255,255,.12));
-    padding:.5rem .6rem; border-radius:9999px;
-    backdrop-filter:saturate(140%) blur(3px);
+    padding:.5rem .6rem; border-radius:8px; /* slight rounded */
+    backdrop-filter:none; /* remove blur */
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
   }
   #hdrControls > button{
-    border-radius:9999px !important;
+    border-radius:8px !important;
     padding:.55rem .9rem !important;
     line-height:1.1;
     box-shadow: 0 1px 0 rgba(0,0,0,.06), 0 1px 8px rgba(0,0,0,.08);
@@ -75,6 +110,95 @@ body { font-size: clamp(14px, calc(14px * var(--ui-zoom) / 100), 20px); }
   /* Make green/indigo buttons slightly softer */
   #hdrControls #btnMakeEventLink{ background:#0ea463 !important; }
   #hdrControls #btnShareEvent{ background:#4f46e5 !important; }
+  /* Viewer search should share the same green intent (create/find event) */
+  #hdrControls #btnViewerSearchEvent{ background:#0ea463 !important; }
+}
+
+/* Keep Logout at far-right on desktop, bottom-right on mobile */
+@media (min-width:768px){
+  #hdrControls{ display:flex; }
+  #hdrControls #btnLogout{ order: 999; }
+  #hdrControls #btnLogin{ order: 999; }
+  #hdrControls #authInfo{ order: 998; }            /* Signed in: next to Logout */
+  #hdrControls #btnAdminLogin{ order: 998; }
+  #hdrControls #btnViewerSearchEvent{ order: 997; }
+  #hdrControls #joinStatus{ order: 996; }
+}
+@media (max-width: 767px){
+  #hdrControls.hdr-mobile-panel{ display:grid; grid-template-columns: 1fr 1fr; }
+  #hdrControls #btnLogout{ order: 999; justify-self: end; }
+  #hdrControls #btnLogin{ order: 999; justify-self: end; }
+  #hdrControls #authInfo{ order: 998; }            /* Signed in near Logout */
+  #hdrControls #btnAdminLogin{ order: 998; justify-self: end; }
+  #hdrControls #btnViewerSearchEvent{ order: 997; }
+  #hdrControls #joinStatus{ order: 996; }
+}
+@media (max-width: 640px){
+  /* float language toggle, stack title/chips neatly */
+  header .mx-auto.max-w-7xl{ position:relative; }
+  header .mx-auto.max-w-7xl > .flex.items-start{
+    gap:12px;
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  header #langToggle{
+    /* align-self:flex-start; */
+    margin-left:auto;
+    position:static;
+  }
+  header .mx-auto.max-w-7xl > .flex.items-start > .h-14{
+    display:none !important;
+  }
+  header .mx-auto.max-w-7xl > .flex.items-start > .flex-1{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  /* hide logo block for more chip space */
+  header .mx-auto.max-w-7xl > .flex.items-start > .h-14{
+    display:none !important;
+  }
+  header #hdrChips{
+    width:100%;
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap:5px;
+    /* padding:0 8px; */
+    border-radius:12px;
+    /* background:rgba(255,255,255,.08);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); */
+  }
+  header #hdrChips .chip{
+    flex:1 1 0;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:10px 12px;
+    border-radius:10px;
+    background:rgba(255,255,255,.14);
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    min-width:0;
+  }
+  header #hdrChips .chip-icon{ flex-shrink:0; }
+  header #hdrChips .chip span,
+  header #hdrChips .chip a{ font-weight:700; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; display:inline-block; }
+  /* first row */
+  header #chipLoc{ grid-column: span 2 / span 2; }
+  header #chipDate{ grid-column: span 2 / span 2; }
+  header #chipCount{ grid-column: span 2 / span 2; }
+  /* second row */
+  header #chipRole{ grid-column: span 2 / span 2; }
+  header #btnTheme{ grid-column: span 2 / span 2; }
+  header #btnSettings{ grid-column: span 2 / span 2; }
+  /* title row: align title + edit + chips toggle */
+  header .mx-auto.max-w-7xl > .flex.items-start > .flex-1 > .flex.flex-col{
+    flex-direction:row;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  #appTitle{ display:inline-block; }
+  #titleEditWrap{ display:inline-flex; align-items:center; margin-left:6px; }
 }
 
 /* Header Location pill */
@@ -103,13 +227,13 @@ body { font-size: clamp(14px, calc(14px * var(--ui-zoom) / 100), 20px); }
 /* Chips row under title */
 .chip{
   display:inline-flex; align-items:center; gap:8px;
-  padding:4px 10px; border-radius:12px;
+  padding:7px 10px; border-radius:12px;
   background:rgba(255,255,255,.18); color:#fff;
   font-weight:600; font-size:.9rem;
 }
 .chip .chip-icon{ width:18px; height:18px; opacity:.95; }
 .chip a{ color:#fff; text-decoration:underline; text-underline-offset:2px; }
-@media (min-width:768px){ .chip{ padding:6px 12px; } .chip .chip-icon{ width:20px; height:20px; } }
+@media (min-width:768px){ .chip{ padding:7px 12px; } .chip .chip-icon{ width:20px; height:20px; } }
 
 /* Modal overlay fix */
 #reportModal { display:none; }
@@ -208,6 +332,47 @@ body { font-size: clamp(14px, calc(14px * var(--ui-zoom) / 100), 20px); }
 @media (max-width:640px){
   .court-wrapper table { min-width:0!important; width:100%!important; text-align: center !important; }
   .court-wrapper td, .court-wrapper th { white-space:normal!important; }
+}
+
+/* ===============================
+   Players list: style delete badge
+   =============================== */
+/* Hanya untuk tombol hapus di kartu pemain editor (class 'del') */
+#playersList li .del{
+  display:inline-flex; align-items:center; gap:6px;
+  /* padding:4px 10px; border-radius:9999px; */
+  background:#ef4444; color:#fff !important; text-decoration:none !important;
+  font-weight:600; font-size:12px;
+}
+#playersList li .del:hover{ background:#dc2626; text-decoration:none !important; }
+#playersList li .del::before{
+  content:""; width:14px; height:14px; display:inline-block;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 6h18'/><path d='M8 6V4h8v2'/><path d='M19 6l-1 14H6L5 6'/><path d='M10 10v8'/><path d='M14 10v8'/></svg>") no-repeat center / contain;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 6h18'/><path d='M8 6V4h8v2'/><path d='M19 6l-1 14H6L5 6'/><path d='M10 10v8'/><path d='M14 10v8'/></svg>") no-repeat center / contain;
+}
+
+/* ===============================
+   App Splash Overlay (Android-like gradient)
+   =============================== */
+.app-splash{ position:fixed; inset:0; z-index:9999; display:grid; place-items:center;
+  background:
+    radial-gradient( circle at 50% 50%, rgba(0,0,0,.15) 0%, rgba(0,0,0,.12) 40%, rgba(0,0,0,0) 60% ),
+    linear-gradient( 45deg, #d946ef 0%, #8b5cf6 50%, #4f46e5 100% );
+  transition: opacity .35s ease, visibility .35s ease;
+}
+.app-splash.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+.app-splash-center{ width:160px; height:160px; border-radius:9999px; display:grid; place-items:center;
+  background: rgba(255,255,255,.14);
+  box-shadow: 0 0 0 12px rgba(255,255,255,.07), 0 18px 50px rgba(0,0,0,.30);
+  backdrop-filter: blur(2px);
+}
+.app-splash-center img{ width:100px; height:100px; border-radius:24px; }
+
+/* Waiting List: one item per row on mobile */
+@media (max-width: 767px){
+  #waitingList{ grid-template-columns: 1fr !important; }
+  #waitingList li{ width: 100%; }
 }
 
 /* ===============================
@@ -802,6 +967,14 @@ input[type="time"].join-open-input {
 .collapsible { overflow:hidden; max-height:0; transition:max-height .28s ease, opacity .18s ease; opacity:0; }
 .collapsible.open { max-height: 4000px; opacity:1; }
 
+/* Paid toggle pulse animation */
+.pay-pulse { animation: payPulse 650ms ease-out; }
+@keyframes payPulse {
+  0% { box-shadow: 0 0 0 0 rgba(16,185,129,.45); }
+  70%{ box-shadow: 0 0 0 10px rgba(16,185,129,0); }
+  100%{ box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+}
+
 /* ===== Join Open (Buka Join) – layout & responsive ===== */
 .join-open-row {
   display:grid;
@@ -817,3 +990,187 @@ input[type="time"].join-open-input {
   -webkit-appearance: none;
   appearance: textfield;
 }
+/* Mobile header chips collapse with smooth ease-in/out */
+@media (max-width: 640px){
+  #hdrChips{
+    overflow: hidden;
+    transition: max-height .25s ease, opacity .2s ease, margin-top .25s ease;
+  }
+  #hdrChips.chips-collapsed{
+    max-height: 0 !important;
+    opacity: 0;
+    margin-top: -16px !important;
+  }
+  #hdrChips:not(.chips-collapsed){
+    /* max-height: 160px; */
+    opacity: 1;
+  }
+  #btnHdrChipsToggle{
+    transition: transform .2s ease, background-color .2s ease, opacity .2s ease;
+  }
+}
+
+/* Generic modal/popup open animations (CSS-only) */
+@media (prefers-reduced-motion: no-preference){
+  /* fade backdrop when container becomes visible */
+  [id$="Modal"]:not(.hidden),
+  [id$="Popup"]:not(.hidden),
+  #textModal:not(.hidden){
+    animation: modal-backdrop .22s ease both;
+  }
+  /* pop-in the dialog panel (assume last child is the panel) */
+  [id$="Modal"]:not(.hidden) > div:last-child,
+  [id$="Popup"]:not(.hidden) > div:last-child{
+    animation: modal-pop .22s cubic-bezier(.22,.61,.36,1) both;
+    transform-origin: center top;
+  }
+  /* inline small editor text popup */
+  #textModal:not(.hidden){
+    animation: modal-pop .18s cubic-bezier(.22,.61,.36,1) both;
+    transform-origin: center top;
+  }
+  @keyframes modal-backdrop{ from{ opacity:0 } to{ opacity:1 } }
+  @keyframes modal-pop{ from{ transform: translateY(10px) scale(.98); opacity:0 } to{ transform: translateY(0) scale(1); opacity:1 } }
+}
+/* ===== Modal/Popup ease-in animations (applies to new tennis score modals too) ===== */
+/* Animate any element whose id ends with "-modal" when it becomes visible (not .hidden) */
+[id$="-modal"]{
+  will-change: opacity, transform;
+}
+[id$="-modal"]:not(.hidden){
+  animation: modal-backdrop-in .18s ease-out both;
+}
+[id$="-modal"]:not(.hidden) > div{
+  animation: modal-zoom-in .22s cubic-bezier(.16,.84,.44,1) both;
+}
+
+/* Tennis score overlay container */
+#tsOverlay{
+  will-change: opacity, transform;
+}
+#tsOverlay:not(.hidden){
+  animation: modal-backdrop-in .18s ease-out both;
+}
+/* Animate the white panel inside overlay (the relative container) */
+#tsOverlay:not(.hidden) > div.relative{
+  animation: modal-zoom-in .22s cubic-bezier(.16,.84,.44,1) both;
+}
+
+@keyframes modal-backdrop-in{
+  from{ opacity: 0; }
+  to  { opacity: 1; }
+}
+@keyframes modal-zoom-in{
+  from{ opacity: 0; transform: translateY(8px) scale(.98); }
+  to  { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ===== Dark mode polish for Tennis Score overlay ===== */
+.dark #tsOverlay .relative{
+  background-color:#0f172a; /* slate-900 (softer) */
+  color:#e5e7eb;            /* slate-200 text */
+  border-color:#243044;     /* custom soft border */
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+.dark #tsTitle{ color:#e2e8f0; }
+.dark #tsOverlay .mb-4.flex{
+  background-color:#0b1220 !important;   /* soft dark panel */
+  border-color:#2b374a !important;       /* soft slate border */
+}
+.dark #game-score-display{
+  background-color:#0b1220; /* slightly lighter than base */
+  border-color:#2b374a;     /* soft slate border */
+}
+.dark #status-message{ color:#f29e44; }
+.dark #mode-selector{
+  background-color:#1f2937; /* gray-800 */
+  color:#e5e7eb;
+  border-color:#475569;     /* slate-600 */
+  box-shadow: inset 0 0 0 2px rgba(51,65,85,.35);
+}
+.dark #tsOverlay label[for="mode-selector"]{ color:#c7d2fe; }
+.dark #game-score-display .text-blue-700{ color:#60a5fa !important; }
+.dark #game-score-display .text-red-700{ color:#f87171 !important; }
+.dark #set-score-label{ color:#cbd5e1; }
+.dark #timer-display{
+  background-color:#3a2a16; /* softer brown */
+  color:#fde68a;            /* amber-200 */
+  box-shadow: inset 0 0 0 2px #b98d4a; /* soft golden border */
+}
+/* .dark #start-match-btn{
+  background-color:#4f46e5; 
+  box-shadow:0 10px 20px rgba(79,70,229,.35);
+} */
+/* .dark #start-match-btn:hover{ background-color:#4338ca; } */
+.dark #finish-match-btn{ background-color:#10b981; } /* emerald-500 */
+.dark #finish-match-btn:hover{ background-color:#059669; }
+.dark #force-reset-btn{ background-color:#dc2626; }  /* red-600 */
+.dark #force-reset-btn:hover{ background-color:#b91c1c; }
+.dark #score-t1{ color:#60a5fa; } /* blue-400 */
+.dark #score-t2{ color:#f87171; } /* red-400 */
+.dark #tsOverlay .score-btn[data-delta="-1"]{
+  background-color:#0f172a; /* slate-900 */
+  color:#e5e7eb;
+  border-color:#475569;     /* slate-600 */
+}
+
+/* Team panels (softer dark cards) */
+.dark #tsOverlay .flex-1.p-4{
+  background-color:#0f172a !important; /* override light bg-blue-50/70 */
+  border-color:#374151 !important;     /* gray-700 */
+  box-shadow: inset 0 0 0 1px rgba(55,65,81,.35), 0 6px 16px rgba(0,0,0,.25);
+}
+.dark #tsOverlay .flex-1.p-4 h2{ color:#93c5fd; }        /* blue title for A */
+.dark #tsOverlay .flex-1.p-4 + .flex-1.p-4 h2{ color:#fca5a5; } /* red title for B */
+
+/* Player names visibility in dark mode */
+/* Non-serving players get a lighter slate tone for better contrast */
+.dark #tsOverlay .player-name.text-gray-600{ color:#cbd5e1 !important; } /* slate-300 */
+/* Serving player keeps orange highlight; add slight glow for readability */
+.dark #tsOverlay .player-name.text-orange-600{ text-shadow: 0 0 6px rgba(251,146,60,.25); }
+
+/* ===== Tennis Score overlay: enlarge player names for readability ===== */
+#tsOverlay .player-name{
+  font-size: 1.05rem !important; /* ~16-17px */
+  line-height: 1.35rem !important; /* ~22px */
+}
+
+/* ===== Light mode: soften tennis-score buttons (scoped to overlay) ===== */
+/* #tsOverlay #start-match-btn{
+  background-color:#6366f1; 
+  box-shadow:0 8px 16px rgba(99,102,241,.25);
+} */
+/* #tsOverlay #start-match-btn:hover{ background-color:#4f46e5; } */
+
+#tsOverlay #finish-match-btn{
+  background-color:#22c55e; /* emerald-500 */
+  box-shadow:0 8px 16px rgba(16,185,129,.22);
+}
+#tsOverlay #finish-match-btn:hover{ background-color:#16a34a; }
+
+#tsOverlay #force-reset-btn{
+  background-color:#ef4444; /* red-500 */
+  box-shadow:0 8px 16px rgba(239,68,68,.22);
+}
+#tsOverlay #force-reset-btn:hover{ background-color:#dc2626; }
+
+/* Score buttons: plus (team A/B) and minus */
+#tsOverlay .score-btn[data-team="1"][data-delta="1"]{
+  background-color:#3b82f6; /* blue-500 */
+  box-shadow:0 8px 16px rgba(59,130,246,.22);
+}
+#tsOverlay .score-btn[data-team="1"][data-delta="1"]:hover{ background-color:#2563eb; }
+
+#tsOverlay .score-btn[data-team="2"][data-delta="1"]{
+  background-color:#ef4444; /* red-500 */
+  box-shadow:0 8px 16px rgba(239,68,68,.22);
+}
+#tsOverlay .score-btn[data-team="2"][data-delta="1"]:hover{ background-color:#dc2626; }
+
+/* Minus buttons: neutral soft */
+#tsOverlay .score-btn[data-delta="-1"]{
+  background-color:#f3f4f6; /* gray-100 */
+  color:#374151;            /* gray-700 */
+  border:1px solid #d1d5db; /* gray-300 */
+}
+#tsOverlay .score-btn[data-delta="-1"]:hover{ background-color:#e5e7eb; }

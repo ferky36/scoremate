@@ -1,12 +1,14 @@
 "use strict";
 // ========== Auth helpers ==========
+const __t = (k, f)=> (window.__i18n_get ? __i18n_get(k, f) : f);
 async function handleAuthRedirect(){
   try{
-    showLoading('Memproses login…');
+    showLoading(__t('auth.processingLogin', 'Memproses login…'));
     const hash = location.hash || '';
     const hasCode = /[?#&](code|access_token)=/.test(location.href) || hash.includes('type=recovery');
     if (hasCode && sb?.auth?.exchangeCodeForSession) {
       await sb.auth.exchangeCodeForSession(window.location.href);
+      try{ sessionStorage.setItem('auth.justExchanged','1'); }catch{}
       history.replaceState({}, '', location.pathname + location.search);
     }
   }catch(e){ console.warn('auth redirect handling failed', e); }
@@ -17,18 +19,43 @@ async function getCurrentUser(){
   try{ const { data } = await sb.auth.getUser(); return data?.user || null; }catch{ return null; }
 }
 
-// Subscribe ke perubahan sesi agar role/owner ter-update setelah refresh/token refresh
+// Subscribe ke perubahan sesi: reload sederhana saat login sukses
 try {
   if (window.sb && !window.__authRoleWatcher){
-    window.__authRoleWatcher = sb.auth.onAuthStateChange((_event, _session)=>{
+    window.__authRoleWatcher = sb.auth.onAuthStateChange((event, _session)=>{
       // Event bisa: INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED, SIGNED_OUT
-      try{ updateAuthUI?.(); }catch{}
+      try{
+        if (event === 'SIGNED_IN') {
+          const hash = location.hash || '';
+          const viaCode = /[?#&](code|access_token)=/.test(location.href) || hash.includes('type=recovery') || sessionStorage.getItem('auth.justExchanged')==='1';
+          const once = sessionStorage.getItem('auth.reloadOnce')==='1';
+          if (viaCode && !once){ sessionStorage.setItem('auth.reloadOnce','1'); location.reload(); return; }
+        }
+        updateAuthUI?.();
+      }catch{}
     });
   }
 } catch {}
 
 async function updateAuthUI(){
   const user = await getCurrentUser();
+  // Simple reload-on-login: only when transitioning from logged-out → logged-in within this session
+  try{
+    const inited = sessionStorage.getItem('auth.init') === '1';
+    const prev = sessionStorage.getItem('auth.prevUser') === '1';
+    const now = !!user;
+    if (!inited){
+      sessionStorage.setItem('auth.init','1');
+      sessionStorage.setItem('auth.prevUser', now ? '1' : '0');
+    } else {
+      if (!prev && now){
+        sessionStorage.setItem('auth.prevUser','1');
+        // reload handled once in onAuthStateChange
+      }
+      sessionStorage.setItem('auth.prevUser', now ? '1' : '0');
+    }
+  }catch{}
+  try{ window.__hasUser = !!user; }catch{}
   const loginBtn = byId('btnLogin'); const logoutBtn = byId('btnLogout'); const info = byId('authInfo'); const email = byId('authUserEmail');
   if (user){
     // Otomatiskan akses editor berdasarkan metadata / tabel user_roles (tanpa owner=yes di URL)
@@ -38,6 +65,7 @@ async function updateAuthUI(){
     info?.classList.remove('hidden');
     if (email) email.textContent = user.email || user.id;
   } else {
+    try{ window.__hasUser = false; }catch{}
     try{ if (typeof accessRole==='undefined' || accessRole!=='viewer') setAccessRole?.('viewer'); }catch{}
     loginBtn?.classList.remove('hidden'); byId('btnAdminLogin')?.classList.remove('hidden');
     logoutBtn?.classList.add('hidden');
@@ -55,7 +83,8 @@ async function resolveUserRoleAndApply(user){
   const prevOwner = !!window._isOwnerUser;
   try{
     role = String((user.app_metadata?.role || user.user_metadata?.role || '')).toLowerCase();
-    isOwner = !!(user.app_metadata?.is_owner || user.user_metadata?.is_owner || role==='owner' || role==='admin');
+    // Global owner only if explicit is_owner true or role === 'owner'
+    isOwner = !!(user.app_metadata?.is_owner || user.user_metadata?.is_owner || role==='owner');
   }catch{}
 
   // Cache ringan di localStorage untuk mengurangi hit /auth/v1/user dan query tabel
@@ -79,7 +108,8 @@ async function resolveUserRoleAndApply(user){
         .maybeSingle();
       if (!error && data){
         role = String(data.role||'').toLowerCase();
-        isOwner = !!data.is_owner || role==='owner' || role==='admin';
+        // Do NOT treat 'admin' as owner; only explicit is_owner or role 'owner'
+        isOwner = !!data.is_owner || role==='owner';
         try{ localStorage.setItem(CK, JSON.stringify({ role, isOwner, ts: Date.now() })); }catch{}
         // Persist ke user_metadata agar terbaca di /auth/v1/user tanpa query DB pada refresh berikutnya
         try{ await sb.auth.updateUser({ data: { role, is_owner: isOwner } }); }catch{}
@@ -88,12 +118,20 @@ async function resolveUserRoleAndApply(user){
   }
 
   window._isOwnerUser = !!isOwner;
-  const desired = (role==='editor' || role==='owner' || role==='admin') ? 'editor' : 'viewer';
+  // Admin is cashflow-only: keep viewer UI for admin
+  let desired = (isOwner || role==='editor') ? 'editor' : 'viewer';
+  // Jika sedang dalam Cloud Mode + ada event aktif, JANGAN menurunkan akses dari editor -> viewer.
+  // Biarkan per-event role (loadAccessRoleFromCloud) yang menentukan. Hanya upgrade di sini.
   try{
-    if (typeof accessRole==='undefined' || accessRole !== desired) {
+    const inCloudEvent = (typeof isCloudMode==='function' && isCloudMode() && typeof currentEventId!=='undefined' && !!currentEventId);
+    const curr = (typeof accessRole==='undefined') ? 'viewer' : accessRole;
+    if (inCloudEvent) {
+      // only upgrade
+      desired = (curr === 'editor' || desired === 'editor') ? 'editor' : 'viewer';
+    }
+    if (curr !== desired) {
       setAccessRole?.(desired);
     } else {
-      // Role tidak berubah; jika owner flag berubah, terapkan ulang mode agar tombol owner muncul
       if (prevOwner !== window._isOwnerUser) { try{ applyAccessMode?.(); }catch{} }
     }
   }catch{}
@@ -103,12 +141,12 @@ function ensureAuthButtons(){
   const bar = byId('hdrControls'); if (!bar) return;
   if (!byId('authInfo')){
     const span = document.createElement('span'); span.id='authInfo'; span.className='text-xs px-2 py-1 bg-white/10 rounded hidden';
-    const se = document.createElement('span'); se.id='authUserEmail'; span.innerHTML = 'Signed in: ';
+    const se = document.createElement('span'); se.id='authUserEmail'; span.innerHTML = __t('auth.signedIn', 'Signed in: ');
     span.appendChild(se);
     bar.appendChild(span);
   }
   if (!byId('btnLogin')){
-    const b = document.createElement('button'); b.id='btnLogin'; b.className='px-3 py-2 rounded-xl bg-white text-indigo-700 font-semibold shadow hover:opacity-90'; b.textContent='Login';
+    const b = document.createElement('button'); b.id='btnLogin'; b.className='px-3 py-2 rounded-xl bg-white text-indigo-700 font-semibold shadow hover:opacity-90'; b.textContent=__t('login.title', 'Login');
     bar.appendChild(b);
     b.addEventListener('click', ()=>{
       const m = byId('loginModal'); if (!m) return; m.classList.remove('hidden');
@@ -116,12 +154,12 @@ function ensureAuthButtons(){
     });
   }
   if (!byId('btnLogout')){
-    const b = document.createElement('button'); b.id='btnLogout'; b.className='px-3 py-2 rounded-xl bg-white text-indigo-700 font-semibold shadow hover:opacity-90 hidden'; b.textContent='Logout';
+    const b = document.createElement('button'); b.id='btnLogout'; b.className='px-3 py-2 rounded-xl bg-white text-indigo-700 font-semibold shadow hover:opacity-90 hidden'; b.textContent=__t('auth.logout', 'Logout');
     bar.appendChild(b);
     b.addEventListener('click', async ()=>{ try{ await sb.auth.signOut(); }catch{} location.reload(); });
   }
   if (!byId('btnAdminLogin')){
-    const b = document.createElement('button'); b.id='btnAdminLogin'; b.className='px-3 py-2 rounded-xl bg-white text-indigo-700 font-semibold shadow hover:opacity-90'; b.textContent='Login as Administrator';
+    const b = document.createElement('button'); b.id='btnAdminLogin'; b.className='px-3 py-2 rounded-xl bg-white text-indigo-700 font-semibold shadow hover:opacity-90'; b.textContent=__t('admin.button', 'Login as Administrator');
     bar.appendChild(b);
     b.addEventListener('click', ()=>{
       const m = byId('adminLoginModal'); if (!m) return; m.classList.remove('hidden');

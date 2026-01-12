@@ -12,6 +12,13 @@ function writeAllSessionsLS(obj) {
 
 /***** ===== Supabase Cloud Mode Helpers ===== *****/
 let currentEventId = null;          // UUID event dari URL
+// Sync currentEventId to window so module scripts can see it
+Object.defineProperty(window, 'currentEventId', {
+  get: () => currentEventId,
+  set: (v) => { currentEventId = v; },
+  configurable: true
+});
+
 let currentSessionDate = null;      // 'YYYY-MM-DD'
 let _serverVersion = 0;             // versi terakhir dari DB
 let _forceViewer = false;           // true jika URL memaksa readonly (share link)
@@ -37,6 +44,7 @@ function isUuid(v){
 function isCloudMode(){ 
   return !!(window.sb && isUuid(currentEventId));
 }
+window.isCloudMode = isCloudMode;
 
 function normalizeDateKey(s){
   // terima '2025-08-26' atau '26/08/2025' → kembalikan 'YYYY-MM-DD'

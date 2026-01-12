@@ -1,14 +1,19 @@
 "use strict";
 // ================== Access Control ================== //
 // role: 'editor' (full access) | 'viewer' (read-only)
-let accessRole = 'editor';
+// Default to 'viewer' to avoid briefly showing editor-only UI before role loads.
+let accessRole = 'viewer';
 // flag owner event (true jika user saat ini adalah owner dari event aktif)
 let _isOwnerUser = false;
 // waiting list container (shared) – ensure single shared array reference
 if (!Array.isArray(window.waitingList)) window.waitingList = [];
 var waitingList = window.waitingList;
+function roleDebug(){ try{ if (window.__debugRole) console.debug('[role]', ...arguments); }catch{} }
 function isViewer(){ return accessRole !== 'editor'; }
-function isScoreOnlyMode(){ return !!window._viewerScoreOnly; }
+function isScoreOnlyMode(){
+  try{ if (window._memberRole === 'wasit') return true; }catch{}
+  return !!window._viewerScoreOnly;
+}
 function canEditScore(){ return !isViewer() || isScoreOnlyMode(); }
 function isOwnerNow(){
   try{
@@ -17,10 +22,18 @@ function isOwnerNow(){
   }catch{}
   return !!window._isOwnerUser;
 }
+window.isOwnerNow = isOwnerNow;
+window.isViewer = isViewer;
+
+function isMobileNow(){ try { return window.matchMedia && window.matchMedia('(max-width: 640px)').matches; } catch { return false; } }
+function isCashAdmin(){
+  try { if (typeof isOwnerNow === 'function' && isOwnerNow()) return true; } catch {}
+  return !!window._isCashAdmin;
+}
 function setAccessRole(role){ accessRole = (role === 'viewer') ? 'viewer' : 'editor'; applyAccessMode(); renderAll?.(); renderPlayersList?.(); renderViewerPlayersList?.(); }
 function applyAccessMode(){
   document.documentElement.setAttribute('data-readonly', String(isViewer()));
-  const disableIds = ['btnAddCourt','btnMakeEventLink','btnShareEvent','btnApplyPlayersActive','btnResetActive','btnClearScoresActive','btnClearScoresAll'];
+  const disableIds = ['btnAddCourt','btnMakeEventLink','btnShareEvent','btnApplyPlayersActive','btnResetActive','btnClearScoresActive'];
   disableIds.forEach(id=>{ const el = byId(id); if (el) el.disabled = isViewer(); });
 
   // Kontrol skor: boleh aktif jika editor ATAU viewer score-only
@@ -40,6 +53,7 @@ function applyAccessMode(){
     'btnMakeEventLink',       // buat link event
     'btnShareEvent',          // share & undang
     'btnLeaveEvent',          // keluar event
+    // Hide Filter/Jadwal for viewer and not-logged-in
     'btnFilterToggle',        // toggle filter
     'filterPanel',            // panel filter input tanggal/waktu/durasi
     'globalInfo',             // ringkasan global pemain/match
@@ -47,11 +61,34 @@ function applyAccessMode(){
     'pairMode',
     'btnResetActive',
     'btnClearScoresActive',
-    'btnClearScoresAll'
+    // btnClearScoresAll removed
   ];
   hideGeneralIds.forEach(id=>{ const el = byId(id); if (el) el.classList.toggle('hidden', isViewer()); });
-  // Show viewer-only search button
-  try{ const vb = byId('btnViewerSearchEvent'); if (vb) vb.classList.toggle('hidden', !isViewer()); }catch{}
+  // Filter/Jadwal toggle visibility:
+  // - Editor/Owner: disembunyikan (sudah dipindah ke popup)
+  // - Selain editor (viewer/wasit/admin kas): pertahankan perilaku lama (tidak disembunyikan di sini)
+  try{
+    if (!isViewer()){
+      const btn = byId('btnFilterToggle'); if (btn) btn.classList.add('hidden');
+      const panel = byId('filterPanel');   if (panel) panel.classList.add('hidden');
+    }
+  }catch{}
+  // Show search button for: viewer OR editor-non-owner
+  try{
+    const vb = byId('btnViewerSearchEvent');
+    if (vb){
+      const showViewerSearch = isViewer() || (!isViewer() && !isOwnerNow());
+      vb.classList.toggle('hidden', !showViewerSearch);
+    }
+  }catch{}
+
+  // Create Event button: only visible for owner (regardless of editor/viewer toggle above)
+  try{
+    const mk = byId('btnMakeEventLink');
+    if (mk && !isViewer()){
+      mk.classList.toggle('hidden', !isOwnerNow());
+    }
+  }catch{}
 
   // 2) Score controls container: sembunyikan untuk viewer biasa, TAPI tampilkan untuk view=1
   const hideScoreIds = [ 'scoreControlsLeft', 'btnFinishScore', 'btnRecalc', 'scoreButtonsA', 'scoreButtonsB' ];
@@ -105,8 +142,16 @@ function applyAccessMode(){
   updateAuthUI?.();
   // Refresh Join/Leave controls visibility when role changes
   try{ refreshJoinUI?.(); }catch{}
-  // Viewer "Cari Event" button visibility
-  try{ const vb = byId('btnViewerSearchEvent'); if (vb) vb.classList.toggle('hidden', !isViewer()); }catch{}
+  // Update role chip indicator
+  try{ renderRoleChip?.(); renderWasitBadge?.(); }catch{}
+  // "Cari Event" button visibility (viewer or editor-non-owner)
+  try{
+    const vb = byId('btnViewerSearchEvent');
+    if (vb){
+      const showViewerSearch = isViewer() || (!isViewer() && !isOwnerNow());
+      vb.classList.toggle('hidden', !showViewerSearch);
+    }
+  }catch{}
 
   // Title editor (rename) visibility: only in cloud mode, only for editor
   try {
@@ -115,12 +160,67 @@ function applyAccessMode(){
     if (wrap) wrap.classList.toggle('hidden', isViewer() || !currentEventId || !isCloudMode());
   } catch {}
 
+  // Cashflow button visibility: only owner or cash-admin, and only when logged in
+  try {
+    const cb = byId('btnCashflow');
+    const known = (typeof window._isCashAdmin !== 'undefined');
+    const loggedIn = !!window.__hasUser;
+    const allow = loggedIn && ((isOwnerNow()) || (!!window._isCashAdmin));
+    if (cb) {
+      // If not logged in, force hide and stop toggling
+      if (!loggedIn) { cb.classList.add('hidden'); return; }
+      // Always hide header Cashflow button on mobile view; use navbar tab instead
+      if (isMobileNow()) { cb.classList.add('hidden'); return; }
+      if (known) {
+        const show = !!(allow && currentEventId && isCloudMode());
+        cb.classList.toggle('hidden', !show);
+        roleDebug('cashflow-toggle', { known, allow, loggedIn, isOwnerNow: isOwnerNow(), _isCashAdmin: window._isCashAdmin, event: currentEventId, cloud: isCloudMode(), show });
+      }
+      // If not known yet, ask background to compute it; don't toggle to avoid flicker
+      if (!known) { try{ ensureCashAdminFlag?.(); }catch{} }
+    }
+  } catch {}
+
+  // Sync mobile navbar Cashflow tab visibility with same logic
+  try { updateMobileCashTab?.(); } catch {}
+
   // Move editor players panel out of filter grid into its own section
   try {
     if (!isViewer()) relocateEditorPlayersPanel();
     const host = document.getElementById('editorPlayersSection');
     if (host) host.classList.toggle('hidden', isViewer());
+    // Additionally, ensure the original collapsible wrapper (inside filter grid)
+    // is hidden for viewers (owner/editor only). This handles mobile rearrangement too.
+    (function ensureHidePlayersWrapperForViewer(){
+      const btn = byId('btnCollapsePlayers');
+      if (!btn) return;
+      // wrapper card (rounded border)
+      const card = btn.closest('.p-3') || btn.parentElement?.parentElement;
+      if (card) card.classList.toggle('hidden', isViewer());
+      // whole filter-field block that contains the card
+      try{
+        const field = card ? card.closest('.filter-field') : btn.closest('.filter-field');
+        if (field) field.classList.toggle('hidden', isViewer());
+      }catch{}
+      // Observe DOM changes to keep it hidden on mobile reflow
+      try{
+        if (!window.__playersBlockMO){
+          const mo = new MutationObserver(()=>{
+            const b = byId('btnCollapsePlayers');
+            if (!b) return;
+            const c = b.closest('.p-3') || b.parentElement?.parentElement;
+            if (c) c.classList.toggle('hidden', isViewer());
+            try{ const f = c ? c.closest('.filter-field') : b.closest('.filter-field'); if (f) f.classList.toggle('hidden', isViewer()); }catch{}
+          });
+          mo.observe(document.body, { childList:true, subtree:true });
+          window.__playersBlockMO = mo;
+        }
+      }catch{}
+    })();
   } catch {}
+
+  // As a safety, recompute cash-admin flag after mode changes
+  try{ ensureCashAdminFlag?.(); }catch{}
 }
 
 
