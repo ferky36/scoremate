@@ -309,7 +309,15 @@ try{
             <div class="rounded-lg p-4 md:p-6 bg-white dark:bg-slate-900">
               <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
                 <div class="flex items-center gap-4">
-                  <div class="w-20 h-20 md:w-24 md:h-24 rounded-full ring-4 ring-emerald-400 overflow-hidden bg-gray-100 dark:bg-slate-700 flex items-center justify-center"> <img id="ps_avatar" src="" alt="avatar" class="w-full h-full object-cover" onerror="this.style.display='none'"/></div>
+                  <div class="relative w-20 h-20 md:w-24 md:h-24 group">
+                    <div class="w-full h-full rounded-full ring-4 ring-emerald-400 overflow-hidden bg-gray-100 dark:bg-slate-700 flex items-center justify-center relative">
+                       <img id="ps_avatar" src="" alt="avatar" class="w-full h-full object-cover" onerror="this.style.display='none'"/>
+                       <div id="ps_avatar_overlay" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer" title="Upload Photo">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                       </div>
+                    </div>
+                    <input type="file" id="psAvatarInput" accept="image/*" hidden />
+                  </div>
                 </div>
                 <div class="flex-1 w-full">
                   <div class="text-center md:text-left">
@@ -438,12 +446,100 @@ try{
         if (!user){ if (paneHistory) paneHistory.innerHTML = '<div class="p-4">Please login to view your stats.</div>'; return; }
         const uid = user.id;
         
-        // Fetch user name once for use in history and default filter
+        // Fetch user name and avatar
         let userName = 'You';
+        let userAvatar = null;
         try{
-          const { data: prof } = await sb.from('profiles').select('full_name').eq('id', uid).maybeSingle();
+          const { data: prof } = await sb.from('profiles').select('full_name, avatar_url').eq('id', uid).maybeSingle();
           userName = prof?.full_name || user?.user_metadata?.full_name || 'You';
+          userAvatar = prof?.avatar_url;
         }catch{}
+
+        // --- Avatar Logic ---
+        const psAvatar = document.getElementById('ps_avatar');
+        const psAvatarOverlay = document.getElementById('ps_avatar_overlay');
+        const psAvatarInput = document.getElementById('psAvatarInput');
+
+        // Set initial avatar
+        if (userAvatar && psAvatar) {
+           psAvatar.src = userAvatar;
+           psAvatar.style.display = '';
+        }
+
+        // Helper: Compress
+        const compressImage = (file, maxWidth, quality) => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = event => {
+              const img = new Image();
+              img.src = event.target.result;
+              img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width, height = img.height;
+                if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+                canvas.width = width; canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob(blob => resolve(blob), 'image/jpeg', quality);
+              };
+              img.onerror = reject;
+            };
+            reader.onerror = reject;
+          });
+        };
+
+        // Handle upload
+        if (psAvatarOverlay && psAvatarInput) {
+           psAvatarOverlay.addEventListener('click', () => psAvatarInput.click());
+           psAvatarInput.addEventListener('change', async (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              
+              if (psAvatar) psAvatar.style.opacity = '0.5';
+              
+              try {
+                // Compress (max 512px, q=0.7)
+                const compressedBlob = await compressImage(file, 512, 0.7);
+                const compressedFile = new File([compressedBlob], 'avatar.jpg', { type: 'image/jpeg' });
+                
+                // Construct path: safe-slug-uid/avatar.jpg
+                const slug = (typeof window.slugify === 'function') 
+                   ? window.slugify(userName) 
+                   : (userName||'user').toLowerCase().replace(/[^a-z0-9]/g,'-').replace(/-+/g,'-');
+                
+                const folderName = `${slug}-${uid.slice(0,4)}`; 
+                const filePath = `${folderName}/avatar.jpg`;
+                
+                // Upload (upsert=true replaces existing)
+                const { error: upErr } = await sb.storage.from('avatars').upload(filePath, compressedFile, {
+                    upsert: true,
+                    contentType: 'image/jpeg',
+                    cacheControl: '3600'
+                });
+                if (upErr) throw upErr;
+                 
+                // Get public URL
+                const { data: urlData } = sb.storage.from('avatars').getPublicUrl(filePath);
+                const publicUrl = urlData.publicUrl;
+                 
+                // Update DB
+                await sb.from('profiles').update({ avatar_url: publicUrl }).eq('id', uid);
+                 
+                // Update UI
+                if (psAvatar) {
+                    psAvatar.src = publicUrl + '?t=' + new Date().getTime();
+                    psAvatar.style.display = '';
+                    psAvatar.style.opacity = '1';
+                }
+              } catch (err) {
+                 console.error('Avatar upload failed', err);
+                 alert('Upload failed: ' + (err.message || err));
+                 if (psAvatar) psAvatar.style.opacity = '1';
+              }
+           });
+        }
+        // --- End Avatar Logic ---
         
         // Set default filter to logged-in user's name
         if (playerFilterEl) playerFilterEl.value = userName;
