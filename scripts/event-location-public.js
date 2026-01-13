@@ -312,8 +312,16 @@ try{
                   <div class="relative w-20 h-20 md:w-24 md:h-24 group">
                     <div class="w-full h-full rounded-full ring-4 ring-emerald-400 overflow-hidden bg-gray-100 dark:bg-slate-700 flex items-center justify-center relative">
                        <img id="ps_avatar" src="" alt="avatar" class="w-full h-full object-cover" onerror="this.style.display='none'"/>
-                       <div id="ps_avatar_overlay" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer" title="Upload Photo">
+                       <div id="ps_avatar_overlay" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer z-10" title="Upload Photo">
                           <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                       </div>
+                       <!-- Loader -->
+                       <div id="ps_avatar_loader" class="absolute inset-0 bg-black/50 flex items-center justify-center z-20 hidden">
+                          <svg class="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                       </div>
+                       <!-- Success -->
+                       <div id="ps_avatar_success" class="absolute inset-0 bg-emerald-600/80 flex items-center justify-center z-30 hidden">
+                          <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                        </div>
                     </div>
                     <input type="file" id="psAvatarInput" accept="image/*" hidden />
@@ -459,6 +467,8 @@ try{
         const psAvatar = document.getElementById('ps_avatar');
         const psAvatarOverlay = document.getElementById('ps_avatar_overlay');
         const psAvatarInput = document.getElementById('psAvatarInput');
+        const psAvatarLoader = document.getElementById('ps_avatar_loader');
+        const psAvatarSuccess = document.getElementById('ps_avatar_success');
 
         // Set initial avatar
         if (userAvatar && psAvatar) {
@@ -496,7 +506,9 @@ try{
               const file = e.target.files[0];
               if (!file) return;
               
-              if (psAvatar) psAvatar.style.opacity = '0.5';
+              // Show loader
+              if (psAvatarLoader) psAvatarLoader.classList.remove('hidden');
+              if (psAvatarSuccess) psAvatarSuccess.classList.add('hidden');
               
               try {
                 // Compress (max 512px, q=0.7)
@@ -521,21 +533,28 @@ try{
                  
                 // Get public URL
                 const { data: urlData } = sb.storage.from('avatars').getPublicUrl(filePath);
-                const publicUrl = urlData.publicUrl;
+                const publicUrl = urlData.publicUrl + '?v=' + new Date().getTime();
                  
                 // Update DB
                 await sb.from('profiles').update({ avatar_url: publicUrl }).eq('id', uid);
                  
                 // Update UI
                 if (psAvatar) {
-                    psAvatar.src = publicUrl + '?t=' + new Date().getTime();
+                    psAvatar.src = publicUrl;
                     psAvatar.style.display = '';
-                    psAvatar.style.opacity = '1';
                 }
+                
+                // Show Success
+                if (psAvatarLoader) psAvatarLoader.classList.add('hidden');
+                if (psAvatarSuccess) {
+                    psAvatarSuccess.classList.remove('hidden');
+                    setTimeout(() => psAvatarSuccess.classList.add('hidden'), 2000);
+                }
+                
               } catch (err) {
                  console.error('Avatar upload failed', err);
                  alert('Upload failed: ' + (err.message || err));
-                 if (psAvatar) psAvatar.style.opacity = '1';
+                 if (psAvatarLoader) psAvatarLoader.classList.add('hidden');
               }
            });
         }
