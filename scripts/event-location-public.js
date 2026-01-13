@@ -955,3 +955,21 @@ try{
     }catch(e){ console.warn('btnViewStats binding failed', e); }
   });
 }catch(e){ console.warn('init btnViewStats failed', e); }
+
+// --- Global Avatar Cache for Recap ---
+window.__PLAYER_AVATARS = {};
+async function fetchAllStatsAvatars(){
+  try{
+    // Wait for sb
+    if (!window.sb) return;
+    const { data, error } = await window.sb.from('profiles').select('full_name, avatar_url');
+    if (!error && data){
+      data.forEach(p=>{
+        if (p.full_name && p.avatar_url) window.__PLAYER_AVATARS[p.full_name] = p.avatar_url;
+      });
+    }
+  }catch(e){ console.warn('Avatar precache fail', e); }
+}
+// Init
+if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', fetchAllStatsAvatars);
+else fetchAllStatsAvatars();
