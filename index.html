@@ -24,6 +24,23 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script> tailwind.config = { darkMode: 'class' };</script>
   <script src="scripts/lang.js"></script>
+  <script>
+    // shim: ensure setAppTitle exists early to avoid ReferenceError from other scripts
+    if (typeof window.setAppTitle !== 'function') {
+      window.setAppTitle = function(title){
+        try{
+          if (title){
+            const el = document.getElementById('appTitle');
+            if (el) el.textContent = title;
+            document.title = (title ? title + ' – ' : '') + 'Mix Americano';
+          } else {
+            const el = document.getElementById('appTitle'); if (el) el.textContent = 'Mix Americano';
+            document.title = 'Mix Americano';
+          }
+        }catch(e){ /* noop */ }
+      };
+    }
+  </script>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
   <!-- App Splash (soft gradient overlay). Auto hides after window load. -->
@@ -84,6 +101,10 @@
                 <svg class="chip-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>
                 <span id="chipRoleText">-</span>
               </span>
+              <button id="btnViewStats" class="chip hidden" title="Lihat statistik saya" data-i18n-title="stats.viewMyStats">
+                <svg class="chip-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 2 2 5-5"/></svg>
+                <span id="btnViewStatsText" data-i18n="stats.myStats">Stat Saya</span>
+              </button>
               <button id="btnHdrControlsToggle" class="hidden md:inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white/20 text-white shadow hover:bg-white/30" title="Tampilkan kontrol">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-5 h-5"><path stroke-width="1.8" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
               </button>
@@ -510,6 +531,17 @@
     </div>
   </div>
 
+  <div id="playerStatsModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-4">
+    <div id="playerStatsOverlay" class="absolute inset-0 bg-black/50"></div>
+    <div class="relative bg-white dark:bg-gray-900 rounded-xl max-w-6xl w-full overflow-auto shadow-lg" style="max-height:90vh;">
+      <button id="playerStatsClose" class="absolute top-3 right-3 text-gray-700 dark:text-gray-200 bg-white/10 hover:bg-white/20 rounded-full w-9 h-9 flex items-center justify-center">✕</button>
+      <div id="playerStatsContainer" class="p-4">
+        <!-- content populated by scripts/event-location-public.js -->
+        <div class="p-6 muted">Loading...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Hitung Skor -->
   <div id="scoreModal" class="fixed inset-0 z-50 hidden">
     <!-- backdrop -->
@@ -649,6 +681,7 @@
           <div class="text-sm text-gray-600 dark:text-gray-300" data-i18n="login.desc">Masukkan email Anda.</div>
           <input id="loginEmail" type="email" placeholder="email@example.com" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
           <button id="loginSendBtn" class="w-full px-3 py-2 rounded-xl bg-indigo-600 text-white font-semibold" data-i18n="login.send">Kirim Link Login</button>
+          <!-- <button id="loginSsoBtn" class="w-full mt-2 px-3 py-2 rounded-xl bg-white border text-gray-800 font-semibold" title="Login dengan SSO">Login dengan SSO</button> -->
           <div id="loginMsg" class="text-xs"></div>
         </div>
     </div>

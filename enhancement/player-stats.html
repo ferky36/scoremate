@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Player Stats</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    /* Small tweaks to match app theme */
+    .card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 6px 20px rgba(2,6,23,0.06); }
+    .muted { color: #6b7280; }
+    .accent { color: #2563eb; }
+    .grid-6 { display: grid; grid-template-columns: repeat(3,1fr); gap:12px; }
+    @media (max-width:640px){ .grid-6 { grid-template-columns: repeat(2,1fr); } }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <div class="max-w-4xl mx-auto p-6">
+    <header class="mb-6">
+      <h1 class="text-2xl font-semibold">Player Statistics</h1>
+      <p class="muted">Overview of your performance and match history.</p>
+    </header>
+
+    <section id="summary" class="card mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold">Summary</h2>
+        <div id="lastUpdated" class="muted text-sm">—</div>
+      </div>
+      <div id="summaryGrid" class="grid-6">
+        <div class="p-3 bg-white rounded-lg shadow-sm">
+          <div class="muted text-xs">Points For</div>
+          <div id="pointsFor" class="text-xl font-bold">0</div>
+        </div>
+        <div class="p-3 bg-white rounded-lg shadow-sm">
+          <div class="muted text-xs">Points Against</div>
+          <div id="pointsAgainst" class="text-xl font-bold">0</div>
+        </div>
+        <div class="p-3 bg-white rounded-lg shadow-sm">
+          <div class="muted text-xs">Games</div>
+          <div id="gamesPlayed" class="text-xl font-bold">0</div>
+        </div>
+        <div class="p-3 bg-white rounded-lg shadow-sm">
+          <div class="muted text-xs">Wins</div>
+          <div id="wins" class="text-xl font-bold">0</div>
+        </div>
+        <div class="p-3 bg-white rounded-lg shadow-sm">
+          <div class="muted text-xs">Draws</div>
+          <div id="draws" class="text-xl font-bold">0</div>
+        </div>
+        <div class="p-3 bg-white rounded-lg shadow-sm">
+          <div class="muted text-xs">Losses</div>
+          <div id="losses" class="text-xl font-bold">0</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="history" class="card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold">Match History</h2>
+        <div class="flex gap-2 items-center">
+          <label class="muted text-xs">From</label>
+          <input id="fromDate" type="date" class="border rounded px-2 py-1" />
+          <label class="muted text-xs">To</label>
+          <input id="toDate" type="date" class="border rounded px-2 py-1" />
+          <button id="searchBtn" class="ml-2 px-3 py-1 rounded bg-emerald-600 text-white">Search</button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table id="historyTable" class="w-full text-left">
+          <thead class="text-sm text-gray-500">
+            <tr>
+              <th class="p-2">Date</th>
+              <th class="p-2">Event</th>
+              <th class="p-2">Match</th>
+              <th class="p-2">Score</th>
+              <th class="p-2">Result</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody" class="text-sm">
+            <tr><td colspan="5" class="p-4 muted">No data</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Uses global `sb` Supabase client used across the app
+    (async function(){
+      const format = d=> new Date(d).toLocaleDateString();
+      async function requireUser(){
+        try{ const { data } = await sb.auth.getUser(); return data?.user || null; }catch{ return null; }
+      }
+
+      const user = await requireUser();
+      if (!user){ document.querySelector('#summary').innerHTML = '<div class="p-4">Please login to view your stats.</div>'; return; }
+      const uid = user.id;
+
+      // Prefill dates: last 30 days
+      const to = new Date();
+      const from = new Date(); from.setDate(from.getDate() - 30);
+      const toIso = to.toISOString().slice(0,10);
+      const fromIso = from.toISOString().slice(0,10);
+      document.getElementById('fromDate').value = fromIso;
+      document.getElementById('toDate').value = toIso;
+
+      // Load summary from view player_points_summary_by_uid
+      async function loadSummary(){
+        try{
+          const { data, error } = await sb.from('player_points_summary_by_uid').select('*').eq('player_id', uid).maybeSingle();
+          if (error) throw error;
+          const s = data || { total_points_for:0, total_points_against:0, games_played:0, wins:0, losses:0, draws:0 };
+          document.getElementById('pointsFor').textContent = s.total_points_for || 0;
+          document.getElementById('pointsAgainst').textContent = s.total_points_against || 0;
+          document.getElementById('gamesPlayed').textContent = s.games_played || 0;
+          document.getElementById('wins').textContent = s.wins || 0;
+          document.getElementById('draws').textContent = s.draws || 0;
+          document.getElementById('losses').textContent = s.losses || 0;
+          document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+        }catch(e){ console.warn('summary load failed', e); }
+      }
+
+      // Load history: query event_states between dates then parse roundsByCourt and playerMeta
+      async function loadHistory(fromDate, toDate){
+        const tbody = document.getElementById('historyBody'); tbody.innerHTML = '<tr><td colspan="5" class="p-4 muted">Loading\u001F</td></tr>';
+        try{
+          const { data, error } = await sb.from('event_states').select('id,event_id,session_date,state,event_title').gte('session_date', fromDate).lte('session_date', toDate).order('session_date', { ascending: false });
+          if (error) throw error;
+          const rows = [];
+          (data||[]).forEach(es => {
+            try{
+              const st = es.state || {};
+              const playerMeta = st.playerMeta || {};
+              // function to check if this player is in the state, return label if found
+              const labelForUid = (uid)=>{
+                for (const lbl in playerMeta){ if (playerMeta[lbl] && (playerMeta[lbl].uid === uid)) return lbl; }
+                return null;
+              }
+              const myLabel = labelForUid(uid);
+              // roundsByCourt is array of courts, each court array of rounds
+              const rbc = st.roundsByCourt || [];
+              for (const courtArr of rbc){
+                if (!Array.isArray(courtArr)) continue;
+                for (const round of courtArr){
+                  const a1 = round.a1 || ''; const a2 = round.a2 || '';
+                  const b1 = round.b1 || ''; const b2 = round.b2 || '';
+                  const scoreA = (round.scoreA||'') === '' ? null : Number(round.scoreA);
+                  const scoreB = (round.scoreB||'') === '' ? null : Number(round.scoreB);
+                  // match if myLabel present among a1,a2,b1,b2 OR playerMeta mapping matches uid
+                  let involved = false; let side = null;
+                  if (myLabel){ if (myLabel === a1 || myLabel === a2){ involved = true; side='A'; } else if (myLabel === b1 || myLabel === b2){ involved = true; side='B'; } }
+                  // fallback: if no label mapping, try match by comparing labels to playerMeta entries
+                  if (!involved){
+                    // check if any of a1,a2,b1,b2 map to uid
+                    const labels = [a1,a2,b1,b2];
+                    for (const l of labels){ if (playerMeta[l] && playerMeta[l].uid === uid){ involved = true; side = (l===a1||l===a2)?'A':'B'; break; } }
+                  }
+                  if (involved){
+                    const opponent = (side === 'A') ? `${b1} / ${b2}` : `${a1} / ${a2}`;
+                    const myScore = (side === 'A') ? scoreA : scoreB;
+                    const oppScore = (side === 'A') ? scoreB : scoreA;
+                    let result = '—';
+                    if (myScore !== null && oppScore !== null){ result = myScore > oppScore ? 'Win' : myScore < oppScore ? 'Loss' : 'Draw'; }
+                    rows.push({ date: es.session_date||'', event: st.eventTitle||es.event_title||'', match: (side==='A'?`${a1} & ${a2}`:`${b1} & ${b2}`), score: (myScore!==null?myScore:'-') + ' - ' + (oppScore!==null?oppScore:'-'), result });
+                  }
+                }
+              }
+            }catch(e){ console.warn('parse es row', e); }
+          });
+          if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 muted">No matches found in range.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = '';
+          for (const r of rows){
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td class="p-2">${r.date}</td><td class="p-2">${r.event}</td><td class="p-2">${r.match}</td><td class="p-2">${r.score}</td><td class="p-2">${r.result}</td>`;
+            tbody.appendChild(tr);
+          }
+        }catch(e){ console.error('history load failed', e); tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-red-600">Failed to load history</td></tr>'; }
+      }
+
+      // wire search
+      document.getElementById('searchBtn').addEventListener('click', ()=>{
+        const f = document.getElementById('fromDate').value || fromIso;
+        const t = document.getElementById('toDate').value || toIso;
+        loadHistory(f,t);
+      });
+
+      // initial load
+      await loadSummary();
+      await loadHistory(fromIso, toIso);
+    })();
+  </script>
+</body>
+</html>

@@ -152,13 +152,49 @@ async function openJoinModal(){
     const uid = u?.id || '';
     const found = findJoinedPlayerByUid(uid);
     if (found){ suggestedName = found.name; g = playerMeta[found.name]?.gender||''; lv = playerMeta[found.name]?.level||''; }
+    // Prefer canonical full_name from public.profiles when available
+    if (!suggestedName){
+      try{
+        const profileResp = await sb.from('profiles').select('full_name').eq('id', uid).maybeSingle();
+        const prof = profileResp?.data || null;
+        if (prof && prof.full_name) suggestedName = prof.full_name;
+      }catch(e){}
+    }
     if (!suggestedName){
       const fullName = u?.user_metadata?.full_name || '';
       const email = u?.email || '';
       suggestedName = fullName || (email ? email.split('@')[0] : '');
+      // If suggestedName collides with existing profile.full_name (case-insensitive), append '1'
+      try{
+        if (suggestedName){
+          const exclId = (u?.id) || '';
+          const { data: existingRows, error: existingErr } = await sb.from('profiles')
+            .select('id,full_name')
+            .ilike('full_name', suggestedName)
+            .neq('id', exclId)
+            .limit(1);
+          if (!existingErr && Array.isArray(existingRows) && existingRows.length > 0){
+            suggestedName = suggestedName + '1';
+          }
+        }
+      }catch(e){ /* ignore */ }
     }
   }catch{}
-  byId('joinNameInput').value = suggestedName || '';
+  // If there's a profile full name, hide the name input and use it
+  const nameInput = byId('joinNameInput');
+  if (nameInput){
+    nameInput.value = suggestedName || '';
+    try{
+      // hide the input's container when the name comes from profiles
+      if (suggestedName){
+        const uidPresent = Boolean(suggestedName && suggestedName.length>0);
+        // We already checked profiles above; if profile provided full_name, hide input
+        const parent = nameInput.closest('div');
+        if (parent) parent.style.display = (uidPresent ? 'none' : '');
+        nameInput.disabled = !!uidPresent;
+      }
+    }catch(e){}
+  }
   byId('joinGenderSelect').value = g || '';
   byId('joinLevelSelect').value = lv || '';
   const msg = byId('joinMsg'); if (msg){ msg.textContent=''; msg.className='text-xs'; }
@@ -412,11 +448,47 @@ async function submitEditNameModal(){
         playerMeta[oldName] = { ...prev, uid: prev.uid || userId, gender: newGender || '', level: newLevel || '' };
       }catch{}
       try{ markDirty?.(); renderPlayersList?.(); renderAll?.(); validateNames?.(); refreshJoinUI?.(); }catch{}
+      // Update profiles.full_name for this user so join UI uses latest full_name
+      try{
+        if (userId){
+          // Validate uniqueness of full_name across profiles (exclude self)
+          try{
+            const { data: dups, error: dupErr } = await sb.from('profiles')
+              .select('id,full_name')
+              .ilike('full_name', newName)
+              .neq('id', userId)
+              .limit(1);
+            if (!dupErr && Array.isArray(dups) && dups.length > 0){
+              const toastMsg = __joinT('join.nameExists','Nama sudah digunakan');
+              showToast?.(toastMsg, 'warn');
+              if (msg){ msg.textContent = toastMsg; msg.className = 'text-xs mt-2 text-amber-600 dark:text-amber-400'; }
+              return;
+            }
+          }catch(e){ /* ignore duplicate-check errors */ }
+          await sb.from('profiles').upsert({ id: userId, full_name: newName, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+        }
+      }catch(e){ console.warn('Failed to upsert profile full_name', e); }
       try{ if (typeof maybeAutoSaveCloud==='function') maybeAutoSaveCloud(); else if (typeof saveStateToCloud==='function') await saveStateToCloud(); }catch{}
       showToast?.(__joinT('join.profileUpdated','Profil diperbarui.'), 'success');
       hideEditNameModal();
       return;
       }
+      // Before renaming locally, validate uniqueness in profiles (case-insensitive) to avoid clobber
+      try{
+        const exclId = userId || '';
+        const { data: predups, error: predupErr } = await sb.from('profiles')
+          .select('id')
+          .ilike('full_name', newName)
+          .neq('id', exclId)
+          .limit(1);
+        if (!predupErr && Array.isArray(predups) && predups.length > 0){
+          const toastMsg = __joinT('join.nameExists','Nama sudah digunakan');
+          showToast?.(toastMsg, 'warn');
+          if (msg){ msg.textContent = toastMsg; msg.className = 'text-xs mt-2 text-amber-600 dark:text-amber-400'; }
+          return;
+        }
+      }catch(e){ /* ignore and continue */ }
+
       // rename self entry in players/waiting list
       let renamed=false;
       if (Array.isArray(players)){
@@ -436,6 +508,27 @@ async function submitEditNameModal(){
       }catch{}
       try{ if (typeof replaceNameInRounds === 'function') replaceNameInRounds(oldName, newName); }catch{}
       try{ markDirty?.(); renderPlayersList?.(); renderAll?.(); validateNames?.(); refreshJoinUI?.(); }catch{}
+      // Update profiles.full_name for this user so join UI uses latest full_name after rename
+      try{
+        if (userId){
+          // Validate uniqueness before upsert (case-insensitive), exclude self
+          try{
+            const { data: dups, error: dupErr } = await sb.from('profiles')
+              .select('id')
+              .ilike('full_name', newName)
+              .neq('id', userId)
+              .limit(1);
+            if (!dupErr && Array.isArray(dups) && dups.length > 0){
+              const toastMsg = __joinT('join.nameExists','Nama sudah digunakan');
+              showToast?.(toastMsg, 'warn');
+              if (editNameMsgEl){ editNameMsgEl.textContent = toastMsg; editNameMsgEl.className = 'text-xs mt-2 text-amber-600 dark:text-amber-400'; }
+              // abort updating profiles to avoid on_conflict clobber
+            } else {
+              await sb.from('profiles').upsert({ id: userId, full_name: newName, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+            }
+          }catch(e){ /* ignore duplicate-check errors and attempt upsert */ try{ await sb.from('profiles').upsert({ id: userId, full_name: newName, updated_at: new Date().toISOString() }, { onConflict: 'id' }); }catch(e2){ console.warn('Failed to upsert profile full_name', e2); } }
+        }
+      }catch(e){ console.warn('Failed to upsert profile full_name', e); }
       try{ if (typeof maybeAutoSaveCloud==='function') maybeAutoSaveCloud(); else if (typeof saveStateToCloud==='function') await saveStateToCloud(); }catch{}
       showToast?.(__joinT('join.selfRenamed','Nama diperbarui menjadi {name}').replace('{name}', newName), 'success');
       hideEditNameModal();

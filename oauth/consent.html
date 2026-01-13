@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Otorisasi Aplikasi — Consent</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:#f8fafc; }
+    .panel { max-width:720px; margin:48px auto; background:white; border-radius:12px; padding:20px; box-shadow:0 6px 20px rgba(2,6,23,0.06); }
+    .muted { color:#6b7280; }
+    .app-info { display:flex; gap:12px; align-items:center; }
+    .app-logo { width:56px; height:56px; border-radius:10px; background:#eee; display:grid; place-items:center; font-weight:700; }
+    .scopes { margin-top:12px; }
+    .scope { display:inline-block; background:#eef2ff; color:#3730a3; padding:6px 10px; border-radius:999px; margin-right:6px; margin-bottom:6px; }
+    .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:18px; }
+    .btn { padding:8px 12px; border-radius:10px; cursor:pointer; }
+    .btn-allow { background:#10b981; color:white; border:0; }
+    .btn-deny { background:#ef4444; color:white; border:0; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>Otorisasi Aplikasi</h1>
+    <p class="muted">Halaman ini menampilkan permintaan akses OAuth. Periksa aplikasi dan izinkan jika Anda mempercayainya.</p>
+
+    <div id="content">
+      <div class="app-info">
+        <div id="logo" class="app-logo">App</div>
+        <div>
+          <div id="appName" class="text-lg font-semibold">Nama Aplikasi</div>
+          <div id="appClient" class="muted text-sm">Client ID: —</div>
+        </div>
+      </div>
+
+      <div class="muted mt-4">Diminta akses:</div>
+      <div id="scopes" class="scopes"></div>
+
+      <div class="muted mt-4">Redirect URI:</div>
+      <div id="redirect" class="muted text-sm">—</div>
+
+      <form id="consentForm" method="POST">
+        <!-- hidden fields are populated by JS -->
+        <input type="hidden" name="client_id" />
+        <input type="hidden" name="redirect_uri" />
+        <input type="hidden" name="response_type" />
+        <input type="hidden" name="state" />
+        <input type="hidden" name="scope" />
+        <input type="hidden" name="decision" />
+        <div class="actions">
+          <button id="denyBtn" type="button" class="btn btn-deny">Tolak</button>
+          <button id="allowBtn" type="button" class="btn btn-allow">Izinkan</button>
+        </div>
+      </form>
+
+      <div class="muted text-xs mt-4">Catatan: ini adalah kerangka consent sederhana. Untuk integrasi penuh dengan Supabase OAuth Server, pastikan field `auth_url` (atau endpoint authorize) dikirim sebagai query parameter oleh Supabase, atau implementasikan handler server-side yang menerima POST dari form ini dan melanjutkan alur OAuth.</div>
+    </div>
+  </div>
+
+  <script>
+    // Bahasa: Indonesia
+    (function(){
+      function qs(){ const q = {}; location.search.slice(1).split('&').forEach(p=>{ if (!p) return; const [k,v]=p.split('='); q[decodeURIComponent(k)]=decodeURIComponent((v||'').replace(/\+/g,' ')); }); return q; }
+      const params = qs();
+      const appName = params.client_name || params.client_id || 'Aplikasi';
+      document.getElementById('appName').textContent = appName;
+      document.getElementById('appClient').textContent = 'Client ID: ' + (params.client_id || '—');
+      document.getElementById('redirect').textContent = params.redirect_uri || '—';
+
+      // scopes: may be space-separated
+      const scopes = (params.scope || '').split(' ').filter(Boolean);
+      const scopesWrap = document.getElementById('scopes');
+      if (scopes.length===0) scopesWrap.textContent = '(tidak ada scope spesifik)';
+      else scopes.forEach(s=>{ const el = document.createElement('span'); el.className='scope'; el.textContent = s; scopesWrap.appendChild(el); });
+
+      // fill hidden fields
+      const form = document.getElementById('consentForm');
+      ['client_id','redirect_uri','response_type','state','scope'].forEach(k=>{ if (form.elements[k]) form.elements[k].value = params[k] || ''; else { const i=document.createElement('input'); i.type='hidden'; i.name=k; i.value = params[k]||''; form.appendChild(i); } });
+
+      // Determine action: prefer explicit auth_url param (Supabase may include)
+      const authUrl = params.auth_url || params.auth_redirect || '';
+      if (authUrl){ try{ form.action = authUrl; form.method = 'POST'; }catch{} }
+
+      // Handle allow/deny
+      document.getElementById('allowBtn').addEventListener('click', ()=>{
+        form.elements['decision'].value = 'allow';
+        // If we have an action target (authUrl), submit form there; otherwise redirect back to redirect_uri with state and approval flag (note: real code should not append code here)
+        if (form.action){ form.submit(); return; }
+        const r = params.redirect_uri || '/';
+        const st = params.state ? ('&state=' + encodeURIComponent(params.state)) : '';
+        // NOTE: this is a minimal placeholder. Production should let Supabase issue auth code.
+        location.href = r + '?consent=allow' + st;
+      });
+
+      document.getElementById('denyBtn').addEventListener('click', ()=>{
+        form.elements['decision'].value = 'deny';
+        if (form.action){ form.submit(); return; }
+        const r = params.redirect_uri || '/';
+        const st = params.state ? ('&state=' + encodeURIComponent(params.state)) : '';
+        location.href = r + '?error=access_denied' + st;
+      });
+    })();
+  </script>
+</body>
+</html>

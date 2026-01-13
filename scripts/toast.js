@@ -41,7 +41,13 @@ async function refreshJoinUI(){
     }
     const found = findJoinedPlayerByUid(user.id);
     if (found){
-      if (nameEl) nameEl.textContent = found.name;
+      // Prefer full_name from `public.profiles` when available
+      let displayName = found.name;
+      try{
+        const { data: prof } = await sb.from('profiles').select('full_name').eq('id', user.id).maybeSingle();
+        if (prof && prof.full_name) displayName = prof.full_name;
+      }catch(e){}
+      if (nameEl) nameEl.textContent = displayName;
       statusWrap && statusWrap.classList.remove('hidden');
       joinBtn && joinBtn.classList.add('hidden');
     } else {

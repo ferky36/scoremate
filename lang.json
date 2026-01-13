@@ -209,7 +209,7 @@
   },
   "players.deleteConfirm": {
     "id": "Hapus",
-    "en": "Delete"Plang
+    "en": "Delete"
   },
   "players.gender.placeholder": {
     "id": "-Pilih Gender-",
@@ -1047,6 +1047,10 @@
     "id": "Nama sudah digunakan. Pilih nama lain.",
     "en": "Name already used. Choose another."
   },
+  "join.nameExists": {
+    "id": "Nama sudah digunakan.",
+    "en": "Name already used."
+  },
   "join.nameNotFound": {
     "id": "Nama tidak ditemukan di daftar pemain.",
     "en": "Name not found in players list."
@@ -1866,6 +1870,78 @@
   "fairness.toast.none": {
     "id": "Tidak ada perombakan minimal yang aman untuk fairness.",
     "en": "No safe minimal reshuffle found for fairness."
+  },
+  "stats.last5": {
+    "id": "5 Laga Terakhir",
+    "en": "Last 5 Matches"
+  },
+  "stats.matches": {
+    "id": "MATCHES",
+    "en": "MATCHES"
+  },
+  "stats.totalPlayed": {
+    "id": "Total Main",
+    "en": "Total Played"
+  },
+  "stats.winRate": {
+    "id": "WIN RATE",
+    "en": "WIN RATE"
+  },
+  "stats.range": {
+    "id": "Rentang Data",
+    "en": "Current Range"
+  },
+  "stats.wins": {
+    "id": "WINS",
+    "en": "WINS"
+  },
+  "stats.losses": {
+    "id": "LOSSES",
+    "en": "LOSSES"
+  },
+  "stats.draws": {
+    "id": "DRAWS",
+    "en": "DRAWS"
+  },
+  "stats.searchPlaceholder": {
+    "id": "Cari pemain...",
+    "en": "Search player..."
+  },
+  "stats.from": {
+    "id": "Dari",
+    "en": "From"
+  },
+  "stats.to": {
+    "id": "Sampai",
+    "en": "To"
+  },
+  "stats.apply": {
+    "id": "Terapkan",
+    "en": "Apply"
+  },
+  "stats.noData": {
+    "id": "Tidak ada data.",
+    "en": "No data available."
+  },
+  "stats.result.win": {
+    "id": "MENANG",
+    "en": "WIN"
+  },
+  "stats.result.loss": {
+    "id": "KALAH",
+    "en": "LOSS"
+  },
+  "stats.result.draw": {
+    "id": "SERI",
+    "en": "DRAW"
+  },
+  "stats.myStats": {
+    "id": "Stat Saya",
+    "en": "My Stats"
+  },
+  "stats.viewMyStats": {
+    "id": "Lihat statistik saya",
+    "en": "View my statistics"
   },
   "render.table.schedule": {
     "id": "Jadwal",

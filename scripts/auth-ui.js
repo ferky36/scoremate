@@ -21,6 +21,24 @@ byId('loginSendBtn')?.addEventListener('click', async ()=>{
   }catch(e){ console.error(e); msg.textContent=__authT('auth.sendError','Gagal mengirim link.'); msg.className='text-xs text-red-600 dark:text-red-400'; }
   finally{ btn.disabled=false; btn.textContent=__authT('auth.send','Kirim Link Login'); }
 });
+// Login dengan SSO (Supabase OAuth Server)
+byId('loginSsoBtn')?.addEventListener('click', async ()=>{
+  try{
+    const base = window.__SUPABASE_URL || '';
+    const clientId = window.__SSO_CLIENT_ID || '';
+    const redirect = (location.origin || '') + '/auth-callback.html';
+    const state = Math.random().toString(36).slice(2);
+    // Jika clientId tersedia, arahkan ke Supabase authorize endpoint
+    if (base && clientId){
+      const url = base.replace(/\/$/, '') + '/oauth/authorize?client_id=' + encodeURIComponent(clientId) + '&redirect_uri=' + encodeURIComponent(redirect) + '&response_type=code&scope=openid%20email&state=' + encodeURIComponent(state);
+      location.href = url;
+      return;
+    }
+    // Fallback: buka halaman consent lokal untuk demo/integrasi manual
+    const demoUrl = '/oauth/consent?client_id=local-demo&client_name=SSO%20Demo&redirect_uri=' + encodeURIComponent(redirect) + '&scope=openid%20email&state=' + encodeURIComponent(state);
+    location.href = demoUrl;
+  }catch(e){ console.warn('SSO login failed', e); showToast?.(__authT('auth.ssoFail','Gagal membuka SSO'), 'error'); }
+});
 byId('btnLogout')?.addEventListener('click', async ()=>{
   try{ await sb.auth.signOut(); }catch{}
   location.reload();
