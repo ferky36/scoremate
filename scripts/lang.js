@@ -2,6 +2,21 @@
 
 (function(){
   const builtinTranslations = {
+    "ranking.title": { "id": "Global Ranking", "en": "Global Ranking" },
+    "ranking.subtitle": { "id": "Berdasarkan statistik dari seluruh event", "en": "Based on statistics from all events" },
+    "ranking.viewButton": { "id": "View Global Ranking", "en": "View Global Ranking" },
+    "ranking.col.player": { "id": "Player", "en": "Player" },
+    "ranking.col.gp": { "id": "GP", "en": "GP" },
+    "ranking.col.w": { "id": "W", "en": "W" },
+    "ranking.col.l": { "id": "L", "en": "L" },
+    "ranking.col.d": { "id": "D", "en": "D" },
+    "ranking.col.pf": { "id": "PF", "en": "PF" },
+    "ranking.col.pa": { "id": "PA", "en": "PA" },
+    "ranking.col.diff": { "id": "Diff", "en": "Diff" },
+    "ranking.col.winrate": { "id": "WinRate", "en": "WinRate" },
+    "ranking.error.init": { "id": "Supabase client tidak terinisialisasi", "en": "Supabase client not initialized" },
+    "ranking.error.noData": { "id": "Belum ada data pertandingan.", "en": "No match data available." },
+    "ranking.error.fetch": { "id": "Gagal memuat data: {message}", "en": "Failed to load data: {message}" },
     "header.menu": { "id": "Menu", "en": "Menu" },
     "header.save": { "id": "Simpan", "en": "Save" },
     "header.makeLink": { "id": "Buat Link Event", "en": "Create Event Link" },
@@ -740,7 +755,8 @@
     'header.report': '#btnReport',
     'header.cashflow': '#btnCashflow',
     'header.leave': '#btnLeaveEvent',
-    'header.filterToggle': '#btnFilterToggle span:last-child'
+    'header.filterToggle': '#btnFilterToggle span:last-child',
+    'ranking.viewButton': '#btnGlobalRanking'
   };
 
   async function loadTranslations(){

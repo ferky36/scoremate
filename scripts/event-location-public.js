@@ -332,8 +332,13 @@ try{
                     <div id="ps_name" class="text-2xl font-bold text-gray-900 dark:text-white">Player</div>
                     <div id="ps_location" class="text-sm text-gray-500 dark:text-slate-300">Padel Pro</div>
                     <div class="mt-4">
-                      <div data-i18n="stats.last5" class="text-xs text-gray-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-1">Last 5 Matches</div>
-                      <div id="ps_last5" class="flex items-center justify-center md:justify-start gap-2"></div>
+                      <div class="flex items-center justify-center md:justify-start gap-2" id="ps_last5"></div>
+                    </div>
+                    <div class="mt-3 flex justify-center md:justify-start">
+                      <button id="btnGlobalRanking" data-i18n="ranking.viewButton" class="px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-100 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition flex items-center gap-2 w-full md:w-auto justify-center shadow-sm">
+                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z"></path></svg>
+                         View Global Ranking
+                      </button>
                     </div>
                   </div>
 
