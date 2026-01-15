@@ -1071,6 +1071,18 @@
     "id": "Join sebagai",
     "en": "Joined as"
   },
+  "join.identifiedAs": {
+    "id": "Profil:",
+    "en": "Profile:"
+  },
+  "join.statusJoined": {
+    "id": "Sudah Join",
+    "en": "Joined"
+  },
+  "join.statusNotJoined": {
+    "id": "Belum Join",
+    "en": "Not Joined"
+  },
   "join.edit": {
     "id": "Edit",
     "en": "Edit"

@@ -476,9 +476,11 @@ try{
         const psAvatarSuccess = document.getElementById('ps_avatar_success');
 
         // Set initial avatar
-        if (userAvatar && psAvatar) {
-           psAvatar.src = userAvatar;
+        const defaultAvatar = 'icons/default-avatar.png';
+        if (psAvatar) {
+           psAvatar.src = userAvatar || defaultAvatar;
            psAvatar.style.display = '';
+           psAvatar.onerror = () => { psAvatar.src = defaultAvatar; };
         }
 
         // Helper: Compress
@@ -520,13 +522,8 @@ try{
                 const compressedBlob = await compressImage(file, 512, 0.7);
                 const compressedFile = new File([compressedBlob], 'avatar.jpg', { type: 'image/jpeg' });
                 
-                // Construct path: safe-slug-uid/avatar.jpg
-                const slug = (typeof window.slugify === 'function') 
-                   ? window.slugify(userName) 
-                   : (userName||'user').toLowerCase().replace(/[^a-z0-9]/g,'-').replace(/-+/g,'-');
-                
-                const folderName = `${slug}-${uid.slice(0,4)}`; 
-                const filePath = `${folderName}/avatar.jpg`;
+                // Construct path: uid/avatar.jpg (ensures 1 folder per user)
+                const filePath = `${uid}/avatar.jpg`;
                 
                 // Upload (upsert=true replaces existing)
                 const { error: upErr } = await sb.storage.from('avatars').upload(filePath, compressedFile, {

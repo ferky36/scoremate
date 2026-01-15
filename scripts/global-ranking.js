@@ -98,7 +98,7 @@
       const row = document.createElement('tr');
       row.className = 'hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors group';
       
-      const avatarUrl = window.__PLAYER_AVATARS && window.__PLAYER_AVATARS[p.display_name];
+      const avatarUrl = p.avatar_url || 'icons/default-avatar.png';
       const initials = (p.display_name || '?').trim().charAt(0).toUpperCase();
 
       const diffColor = p.diff > 0 ? 'text-emerald-600' : (p.diff < 0 ? 'text-rose-500' : '');
@@ -109,7 +109,7 @@
         <td class="px-4 py-3.5">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-400 border border-gray-200 dark:border-slate-700">
-              ${avatarUrl ? `<img src="${avatarUrl}" class="w-full h-full object-cover">` : initials}
+              <img src="${avatarUrl}" class="w-full h-full object-cover" onerror="this.src='icons/default-avatar.png'">
             </div>
             <div class="font-semibold group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate max-w-[120px] md:max-w-none">
               ${p.display_name}

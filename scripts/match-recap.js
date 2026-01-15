@@ -337,15 +337,13 @@
         // Fallback text
         av.textContent = (p.player||'?').trim().charAt(0).toUpperCase() || '?';
 
-        // Try Image
-        const avatarUrl = window.__PLAYER_AVATARS && window.__PLAYER_AVATARS[p.player];
-        if (avatarUrl) {
-           const img = document.createElement('img');
-           img.src = avatarUrl;
-           img.className = 'absolute inset-0 w-full h-full object-cover';
-           img.onerror = () => { img.style.display='none'; }; // Keep text visible if img fails
-           av.appendChild(img);
-        }
+        // Try Image or fallback
+        const avatarUrl = (window.__PLAYER_AVATARS && window.__PLAYER_AVATARS[p.player]) || 'icons/default-avatar.png';
+        const img = document.createElement('img');
+        img.src = avatarUrl;
+        img.className = 'absolute inset-0 w-full h-full object-cover';
+        img.onerror = () => { img.src = 'icons/default-avatar.png'; };
+        av.appendChild(img);
 
         avWrap.appendChild(av);
 

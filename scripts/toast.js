@@ -39,20 +39,39 @@ async function refreshJoinUI(){
       statusWrap && statusWrap.classList.add('hidden');
       return;
     }
+
+    // User is logged in
+    statusWrap && statusWrap.classList.remove('hidden');
+    joinBtn && joinBtn.classList.add('hidden'); 
+    
+    // Get profile name (fallback to email local part)
+    let profileName = user.email.split('@')[0];
+    try{
+      const { data: prof } = await sb.from('profiles').select('full_name').eq('id', user.id).maybeSingle();
+      if (prof && prof.full_name) profileName = prof.full_name;
+    }catch(e){}
+
     const found = findJoinedPlayerByUid(user.id);
+    const indicatorEl = byId('joinStatusIndicator');
+    const joinIconBtn = byId('btnJoinEventIcon');
+    const leaveBtn = byId('btnLeaveSelf');
+
     if (found){
-      // Prefer full_name from `public.profiles` when available
-      let displayName = found.name;
-      try{
-        const { data: prof } = await sb.from('profiles').select('full_name').eq('id', user.id).maybeSingle();
-        if (prof && prof.full_name) displayName = prof.full_name;
-      }catch(e){}
-      if (nameEl) nameEl.textContent = displayName;
-      statusWrap && statusWrap.classList.remove('hidden');
-      joinBtn && joinBtn.classList.add('hidden');
+      if (nameEl) nameEl.textContent = found.name; 
+      if (indicatorEl) {
+        indicatorEl.className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]';
+        indicatorEl.title = __toastT('join.statusJoined', 'Sudah Join');
+      }
+      joinIconBtn && joinIconBtn.classList.add('hidden');
+      leaveBtn && leaveBtn.classList.remove('hidden');
     } else {
-      statusWrap && statusWrap.classList.add('hidden');
-      joinBtn && joinBtn.classList.remove('hidden');
+      if (nameEl) nameEl.textContent = profileName;
+      if (indicatorEl) {
+        indicatorEl.className = 'w-2 h-2 rounded-full bg-white/20';
+        indicatorEl.title = __toastT('join.statusNotJoined', 'Belum Join');
+      }
+      joinIconBtn && joinIconBtn.classList.remove('hidden');
+      leaveBtn && leaveBtn.classList.add('hidden');
     }
   }catch{}
   // UNTUK BONUS: disable tombol Join jika belum waktunya buka pendaftaran

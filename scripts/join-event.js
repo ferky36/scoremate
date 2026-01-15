@@ -38,19 +38,37 @@ function ensureJoinControls(){
   if (!byId('joinStatus')){
     const wrap = document.createElement('span');
     wrap.id='joinStatus';
-    wrap.className='flex items-center gap-2 text-sm hidden';
-    const label = document.createElement('span');
-    label.textContent = __joinT('join.joinedAs','Joined as');
-    const name = document.createElement('span'); name.id='joinedPlayerName'; name.className='font-semibold';
+    // Even more compact pill styling
+    wrap.className='flex items-center gap-1.5 text-sm hidden bg-white/10 pl-2.5 pr-1.5 py-1 rounded-full border border-white/20 ml-auto';
+    
+    // Status Indicator (dot or checkmark)
+    const indicator = document.createElement('span');
+    indicator.id='joinStatusIndicator';
+    indicator.className='w-2 h-2 rounded-full bg-white/30'; 
+    
+    const name = document.createElement('span'); 
+    name.id='joinedPlayerName'; 
+    name.className='font-bold text-white text-xs md:text-sm';
+    
+    const joinIcon = document.createElement('button');
+    joinIcon.id='btnJoinEventIcon';
+    joinIcon.className='p-1 rounded-lg text-emerald-300 hover:text-emerald-200 transition-colors hidden';
+    joinIcon.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-3-3H5a4 4 0 0 0-3 3v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>`;
+    joinIcon.title=__joinT('join.button','Join Event');
+    joinIcon.addEventListener('click', openJoinFlow);
+
     const edit = document.createElement('button');
     edit.id='btnEditSelfName';
-    edit.className='px-2 py-1 rounded-lg border dark:border-gray-700';
-    edit.textContent=__joinT('join.edit','Edit');
+    edit.className='p-1 rounded-lg text-white/80 hover:text-white transition-colors';
+    edit.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+    edit.title=__joinT('join.edit','Edit');
     edit.addEventListener('click', editSelfNameFlow);
+    
     const leave = document.createElement('button');
     leave.id='btnLeaveSelf';
-    leave.className='px-2 py-1 rounded-lg border dark:border-gray-700';
-    leave.textContent=__joinT('join.leave','Leave');
+    leave.className='p-1 rounded-lg text-red-300/80 hover:text-red-200 transition-colors';
+    leave.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
+    leave.title=__joinT('join.leave','Leave');
     leave.addEventListener('click', async ()=>{
       if (!currentEventId) return;
       const ok = await __joinAskYesNo(__joinT('join.leaveConfirm','Keluar dari event (hapus nama Anda dari daftar pemain)?'));
@@ -78,7 +96,11 @@ function ensureJoinControls(){
       }catch(e){ showToast?.(__joinT('join.leaveFail','Gagal leave:') + ' ' + (e?.message||''), 'error'); }
       finally{ hideLoading(); refreshJoinUI(); }
     });
-    wrap.appendChild(label); wrap.appendChild(name); wrap.appendChild(edit); wrap.appendChild(leave);
+    wrap.appendChild(indicator); 
+    wrap.appendChild(name); 
+    wrap.appendChild(joinIcon);
+    wrap.appendChild(edit); 
+    wrap.appendChild(leave);
     bar.appendChild(wrap);
   }
 }
@@ -106,7 +128,7 @@ function ensureJoinModal(){
         <button id="joinCancelBtn" class="px-3 py-1 rounded-lg border dark:border-gray-700">${__joinT('join.close','Tutup')}</button>
       </div>
       <div class="space-y-3">
-        <div>
+        <div id="joinNameRow">
           <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">${__joinT('join.nameLabel','Nama')}</label>
           <input id="joinNameInput" type="text" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" placeholder="${__joinT('join.namePlaceholder','Nama Anda')}" />
         </div>
@@ -180,20 +202,14 @@ async function openJoinModal(){
       }catch(e){ /* ignore */ }
     }
   }catch{}
-  // If there's a profile full name, hide the name input and use it
+  // Handle Name field visibility
   const nameInput = byId('joinNameInput');
+  const nameRow = byId('joinNameRow');
   if (nameInput){
     nameInput.value = suggestedName || '';
-    try{
-      // hide the input's container when the name comes from profiles
-      if (suggestedName){
-        const uidPresent = Boolean(suggestedName && suggestedName.length>0);
-        // We already checked profiles above; if profile provided full_name, hide input
-        const parent = nameInput.closest('div');
-        if (parent) parent.style.display = (uidPresent ? 'none' : '');
-        nameInput.disabled = !!uidPresent;
-      }
-    }catch(e){}
+    const shouldHide = !!(suggestedName && suggestedName.length > 0);
+    if (nameRow) nameRow.classList.toggle('hidden', shouldHide);
+    nameInput.disabled = shouldHide;
   }
   byId('joinGenderSelect').value = g || '';
   byId('joinLevelSelect').value = lv || '';
@@ -333,7 +349,10 @@ function ensureEditNameModal(){
     <div class="absolute inset-0 bg-black/40" id="editNameBackdrop"></div>
     <div class="relative mx-auto mt-20 w-[92%] max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow p-4 md:p-6 border dark:border-gray-700">
       <h3 id="editNameTitle" class="text-base md:text-lg font-semibold mb-3">${__joinT('join.editTitle','Ubah Nama')}</h3>
-      <input id="editNameInput" type="text" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
+      <div id="editNameInputRow">
+        <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">${__joinT('join.nameLabel','Nama Tampilan')}</label>
+        <input id="editNameInput" type="text" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
+      </div>
       <div id="editNameMetaRow" class="grid grid-cols-2 gap-3 mt-3">
         <div>
           <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">${__joinT('join.gender','Gender')}</label>
@@ -378,13 +397,18 @@ function openEditNameModal(ctx){
   const title = ctx?.title || __joinT('join.editTitle','Ubah Nama');
   const initial = ctx?.initialName || '';
   const allowMeta = !!ctx?.allowMeta;
+  const allowName = ctx?.allowName !== false; 
   const g = ctx?.initialGender || '';
   const lv = ctx?.initialLevel || '';
   if (editNameTitleEl) editNameTitleEl.textContent = title;
   if (editNameInputEl){
     editNameInputEl.value = initial;
-    setTimeout(()=>{ try{ editNameInputEl.focus(); editNameInputEl.select(); }catch{} }, 30);
+    if (allowName){
+      setTimeout(()=>{ try{ editNameInputEl.focus(); editNameInputEl.select(); }catch{} }, 30);
+    }
   }
+  const inputRow = byId('editNameInputRow');
+  if (inputRow) inputRow.classList.toggle('hidden', !allowName);
   if (editNameMetaRowEl) editNameMetaRowEl.classList.toggle('hidden', !allowMeta);
   if (editGenderSelectEl) editGenderSelectEl.value = g;
   if (editLevelSelectEl) editLevelSelectEl.value = lv;
@@ -402,18 +426,38 @@ async function editSelfNameFlow(){
     if (!currentEventId){ showToast?.(__joinT('join.openFirst','Buka event terlebih dahulu.'), 'warn'); return; }
     let user=null; try{ const data = await (window.getAuthUserCached ? getAuthUserCached() : sb.auth.getUser().then(r=>r.data)); user = data?.user || null; }catch{}
     if (!user){ byId('loginModal')?.classList.remove('hidden'); return; }
+    
+    // Find if user is already in players list
     const found = findJoinedPlayerByUid(user.id);
-    if (!found || !found.name){ showToast?.(__joinT('join.notJoined','Anda belum join di event ini.'), 'warn'); return; }
-    const meta = (playerMeta && playerMeta[found.name]) ? playerMeta[found.name] : {};
+    let initialName = '';
+    let g = '', lv = '';
+    
+    if (found && found.name) {
+      initialName = found.name;
+      const meta = (playerMeta && playerMeta[found.name]) ? playerMeta[found.name] : {};
+      g = meta?.gender || '';
+      lv = meta?.level || '';
+    } else {
+      // Not joined, fetch from profile
+      try {
+        const { data: prof } = await sb.from('profiles').select('full_name, metadata').eq('id', user.id).maybeSingle();
+        initialName = prof?.full_name || user.email.split('@')[0];
+        g = prof?.metadata?.gender || '';
+        lv = prof?.metadata?.level || '';
+      } catch(e) {
+        initialName = user.email.split('@')[0];
+      }
+    }
+
     openEditNameModal({
       mode:'self',
       title:__joinT('join.editSelfTitle','Ubah nama tampilan Anda'),
-      initialName: found.name,
-      initialGender: meta?.gender || '',
-      initialLevel: meta?.level || '',
-      allowMeta: true,
+      initialName: initialName,
+      initialGender: g,
+      initialLevel: lv,
+      allowMeta: !!found, // Only allow editing gender/level if already joined
       userId: user.id,
-      originalName: found.name
+      originalName: found?.name || '' // empty if not joined
     });
   }catch(e){ console.warn('editSelfNameFlow failed', e); showToast?.(__joinT('join.editOpenFail','Gagal membuka editor nama.'), 'error'); }
 }
@@ -425,8 +469,8 @@ async function submitEditNameModal(){
     const allowMeta = !!ctx.allowMeta;
     const msg = editNameMsgEl;
     const newName = (editNameInputEl?.value || '').trim();
-    const newGender = allowMeta ? (editGenderSelectEl?.value || '') : '';
-    const newLevel  = allowMeta ? (editLevelSelectEl?.value || '') : '';
+    const newGender = editGenderSelectEl?.value || '';
+    const newLevel  = editLevelSelectEl?.value || '';
     if (!newName){ if (msg){ msg.textContent=__joinT('join.nameEmpty','Nama tidak boleh kosong.'); msg.className='text-xs mt-2 text-red-600 dark:text-red-400'; } return; }
     const norm = (s)=>String(s||'').trim().toLowerCase();
     const targetN = norm(newName);
@@ -441,39 +485,36 @@ async function submitEditNameModal(){
       const dupPlayers = Array.isArray(players) && players.some(n=>{ const k=norm(n); return k===targetN && k!==oldN; });
       const dupWaiting = Array.isArray(waitingList) && waitingList.some(n=>{ const k=norm(n); return k===targetN && k!==oldN; });
       if (dupPlayers || dupWaiting){ if (msg){ msg.textContent=__joinT('join.nameUsed','Nama sudah digunakan. Pilih nama lain.'); msg.className='text-xs mt-2 text-amber-600 dark:text-amber-400'; } return; }
-      if (newName === oldName){
-      try{
-        playerMeta = (typeof playerMeta==='object' && playerMeta) ? playerMeta : {};
-        const prev = playerMeta[oldName] ? {...playerMeta[oldName]} : {};
-        playerMeta[oldName] = { ...prev, uid: prev.uid || userId, gender: newGender || '', level: newLevel || '' };
-      }catch{}
-      try{ markDirty?.(); renderPlayersList?.(); renderAll?.(); validateNames?.(); refreshJoinUI?.(); }catch{}
-      // Update profiles.full_name for this user so join UI uses latest full_name
-      try{
-        if (userId){
-          // Validate uniqueness of full_name across profiles (exclude self)
-          try{
-            const { data: dups, error: dupErr } = await sb.from('profiles')
-              .select('id,full_name')
-              .ilike('full_name', newName)
-              .neq('id', userId)
-              .limit(1);
-            if (!dupErr && Array.isArray(dups) && dups.length > 0){
-              const toastMsg = __joinT('join.nameExists','Nama sudah digunakan');
-              showToast?.(toastMsg, 'warn');
-              if (msg){ msg.textContent = toastMsg; msg.className = 'text-xs mt-2 text-amber-600 dark:text-amber-400'; }
-              return;
-            }
-          }catch(e){ /* ignore duplicate-check errors */ }
-          await sb.from('profiles').upsert({ id: userId, full_name: newName, updated_at: new Date().toISOString() }, { onConflict: 'id' });
-        }
-      }catch(e){ console.warn('Failed to upsert profile full_name', e); }
-      try{ if (typeof maybeAutoSaveCloud==='function') maybeAutoSaveCloud(); else if (typeof saveStateToCloud==='function') await saveStateToCloud(); }catch{}
-      showToast?.(__joinT('join.profileUpdated','Profil diperbarui.'), 'success');
-      hideEditNameModal();
-      return;
+      
+      const isRename = !!oldName;
+
+      if (isRename && newName === oldName){
+        // Only saving metadata (gender/level) for existing join entry
+        try{
+          playerMeta = (typeof playerMeta==='object' && playerMeta) ? playerMeta : {};
+          const prev = playerMeta[oldName] ? {...playerMeta[oldName]} : {};
+          playerMeta[oldName] = { ...prev, uid: prev.uid || userId, gender: newGender || '', level: newLevel || '' };
+        }catch{}
+        try{ markDirty?.(); renderPlayersList?.(); renderAll?.(); validateNames?.(); refreshJoinUI?.(); }catch{}
+        // Update profiles.full_name and metadata for this user
+        try{
+          if (userId){
+            await sb.from('profiles').upsert({ 
+              id: userId, 
+              full_name: newName, 
+              metadata: { gender: newGender, level: newLevel },
+              updated_at: new Date().toISOString() 
+            }, { onConflict: 'id' });
+          }
+        }catch(e){ console.warn('Failed to upsert profile', e); }
+        try{ if (typeof maybeAutoSaveCloud==='function') maybeAutoSaveCloud(); else if (typeof saveStateToCloud==='function') await saveStateToCloud(); }catch{}
+        showToast?.(__joinT('join.profileUpdated','Profil diperbarui.'), 'success');
+        hideEditNameModal();
+        return;
       }
-      // Before renaming locally, validate uniqueness in profiles (case-insensitive) to avoid clobber
+
+      // Logic for newName !== oldName OR profile-only update (no oldName)
+      // Validate uniqueness in profiles (case-insensitive)
       try{
         const exclId = userId || '';
         const { data: predups, error: predupErr } = await sb.from('profiles')
@@ -489,48 +530,46 @@ async function submitEditNameModal(){
         }
       }catch(e){ /* ignore and continue */ }
 
-      // rename self entry in players/waiting list
-      let renamed=false;
-      if (Array.isArray(players)){
-        const idx = players.findIndex(n => norm(n)===oldN);
-        if (idx>=0){ players[idx]=newName; renamed=true; }
+      if (isRename) {
+        // Renaming self entry in players/waiting list
+        let renamed=false;
+        if (Array.isArray(players)){
+          const idx = players.findIndex(n => norm(n)===oldN);
+          if (idx>=0){ players[idx]=newName; renamed=true; }
+        }
+        if (!renamed && Array.isArray(waitingList)){
+          const idx2 = waitingList.findIndex(n => norm(n)===oldN);
+          if (idx2>=0){ waitingList[idx2]=newName; renamed=true; }
+        }
+        try{
+          playerMeta = (typeof playerMeta==='object' && playerMeta) ? playerMeta : {};
+          const meta = playerMeta[oldName] ? {...playerMeta[oldName]} : {};
+          if (!playerMeta[newName]) playerMeta[newName] = {};
+          playerMeta[newName] = { ...meta, uid: meta.uid || userId, gender: newGender || '', level: newLevel || '' };
+          if (oldName in playerMeta) delete playerMeta[oldName];
+        }catch{}
+        try{ if (typeof replaceNameInRounds === 'function') replaceNameInRounds(oldName, newName); }catch{}
       }
-      if (!renamed && Array.isArray(waitingList)){
-        const idx2 = waitingList.findIndex(n => norm(n)===oldN);
-        if (idx2>=0){ waitingList[idx2]=newName; renamed=true; }
-      }
-      try{
-        playerMeta = (typeof playerMeta==='object' && playerMeta) ? playerMeta : {};
-        const meta = playerMeta[oldName] ? {...playerMeta[oldName]} : {};
-        if (!playerMeta[newName]) playerMeta[newName] = {};
-        playerMeta[newName] = { ...meta, uid: meta.uid || userId, gender: newGender || '', level: newLevel || '' };
-        if (oldName in playerMeta) delete playerMeta[oldName];
-      }catch{}
-      try{ if (typeof replaceNameInRounds === 'function') replaceNameInRounds(oldName, newName); }catch{}
-      try{ markDirty?.(); renderPlayersList?.(); renderAll?.(); validateNames?.(); refreshJoinUI?.(); }catch{}
-      // Update profiles.full_name for this user so join UI uses latest full_name after rename
+
+      // Always update profile table
       try{
         if (userId){
-          // Validate uniqueness before upsert (case-insensitive), exclude self
-          try{
-            const { data: dups, error: dupErr } = await sb.from('profiles')
-              .select('id')
-              .ilike('full_name', newName)
-              .neq('id', userId)
-              .limit(1);
-            if (!dupErr && Array.isArray(dups) && dups.length > 0){
-              const toastMsg = __joinT('join.nameExists','Nama sudah digunakan');
-              showToast?.(toastMsg, 'warn');
-              if (editNameMsgEl){ editNameMsgEl.textContent = toastMsg; editNameMsgEl.className = 'text-xs mt-2 text-amber-600 dark:text-amber-400'; }
-              // abort updating profiles to avoid on_conflict clobber
-            } else {
-              await sb.from('profiles').upsert({ id: userId, full_name: newName, updated_at: new Date().toISOString() }, { onConflict: 'id' });
-            }
-          }catch(e){ /* ignore duplicate-check errors and attempt upsert */ try{ await sb.from('profiles').upsert({ id: userId, full_name: newName, updated_at: new Date().toISOString() }, { onConflict: 'id' }); }catch(e2){ console.warn('Failed to upsert profile full_name', e2); } }
+          await sb.from('profiles').upsert({ 
+            id: userId, 
+            full_name: newName, 
+            metadata: { gender: newGender, level: newLevel },
+            updated_at: new Date().toISOString() 
+          }, { onConflict: 'id' });
         }
-      }catch(e){ console.warn('Failed to upsert profile full_name', e); }
+      }catch(e){ console.warn('Failed to upsert profile', e); }
+
+      try{ markDirty?.(); renderPlayersList?.(); renderAll?.(); validateNames?.(); refreshJoinUI?.(); }catch{}
       try{ if (typeof maybeAutoSaveCloud==='function') maybeAutoSaveCloud(); else if (typeof saveStateToCloud==='function') await saveStateToCloud(); }catch{}
-      showToast?.(__joinT('join.selfRenamed','Nama diperbarui menjadi {name}').replace('{name}', newName), 'success');
+      
+      const successMsg = isRename 
+        ? __joinT('join.selfRenamed','Nama diperbarui menjadi {name}').replace('{name}', newName)
+        : __joinT('join.profileUpdated','Profil diperbarui.');
+      showToast?.(successMsg, 'success');
       hideEditNameModal();
       return;
     }
