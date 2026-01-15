@@ -21,7 +21,7 @@
     btn = document.createElement('button');
     btn.id = 'btnSettings';
     btn.title = (window.__i18n_get ? window.__i18n_get('settings.title','Pengaturan') : 'Pengaturan');
-    btn.className = 'px-2 py-2 rounded-xl bg-white/20 text-white font-semibold shadow hover:bg-white/30';
+    btn.className = 'px-3 h-[42px] rounded-xl bg-white/20 text-white font-semibold shadow hover:bg-white/30';
     btn.textContent = '⚙️';
     themeBtn.insertAdjacentElement('afterend', btn);
     return btn;
