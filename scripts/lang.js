@@ -30,6 +30,8 @@
     "mobile.insight.noData": { "id": "Belum ada data insight tersedia.", "en": "No insight data available yet." },
     "header.menu": { "id": "Menu", "en": "Menu" },
     "header.save": { "id": "Simpan", "en": "Save" },
+    "header.fullscreen": { "id": "Layar Penuh", "en": "Fullscreen" },
+    "header.exitFullscreen": { "id": "Keluar Layar Penuh", "en": "Exit Fullscreen" },
     "header.makeLink": { "id": "Buat Link Event", "en": "Create Event Link" },
     "header.share": { "id": "Share / Undang", "en": "Share / Invite" },
     "header.report": { "id": "Report", "en": "Report" },

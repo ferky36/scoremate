@@ -2407,3 +2407,26 @@ input[type="time"].join-open-input {
     margin-top: 5px;
   }
 }
+/* Floating Fullscreen Toggle */
+#btnFullscreen {
+  box-shadow: 0 8px 32px rgba(79, 70, 229, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.85;
+}
+
+#btnFullscreen:hover {
+  opacity: 1 !important;
+  transform: scale(1.1) translateX(-4px) !important;
+  box-shadow: 0 12px 40px rgba(79, 70, 229, 0.4);
+}
+
+#btnFullscreen:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 767px) {
+  #btnFullscreen {
+    right: 12px;
+    bottom: 90px;
+  }
+}

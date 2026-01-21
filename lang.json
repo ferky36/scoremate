@@ -127,6 +127,14 @@
     "id": "Simpan",
     "en": "Save"
   },
+  "header.fullscreen": {
+    "id": "Layar Penuh",
+    "en": "Fullscreen"
+  },
+  "header.exitFullscreen": {
+    "id": "Keluar Layar Penuh",
+    "en": "Exit Fullscreen"
+  },
   "header.makeLink": {
     "id": "Buat Link Event",
     "en": "Create Event Link"
