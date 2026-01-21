@@ -398,20 +398,46 @@ if (btnFilter) {
 
 function syncPlayersCollapseIcon(){
   const panel = byId("playersPanel");
+  const btn = byId("btnCollapsePlayers");
   const arrowDown = document.getElementById("playersArrowDown");
   const arrowUp = document.getElementById("playersArrowUp");
-  const btn = byId("btnCollapsePlayers");
   const toggle = document.getElementById("playersActionsToggle");
   const actions = document.getElementById("playersActions");
   if (!panel) return;
   const isOpen = panel.classList.contains("open");
+  const subtitle = document.querySelector('[data-i18n="players.collapseHint"]');
+  
   if (arrowDown) arrowDown.classList.toggle("hidden", isOpen);
   if (arrowUp) arrowUp.classList.toggle("hidden", !isOpen);
   if (btn) btn.setAttribute("aria-expanded", String(isOpen));
+  
+  // Animasi Header Actions & Subtitle
   if (toggle) toggle.classList.toggle("hidden", !isOpen);
-  if (!isOpen && actions){
-    actions.classList.add("hidden");
-    actions.classList.remove("flex");
+  if (actions) {
+    if (isOpen) {
+      actions.classList.remove("hidden");
+      setTimeout(() => actions.classList.add("opacity-100", "translate-y-0"), 10);
+      actions.classList.add("flex");
+    } else {
+      actions.classList.remove("opacity-100", "translate-y-0");
+      setTimeout(() => { 
+        if (!panel.classList.contains("open")) {
+          actions.classList.add("hidden");
+          actions.classList.remove("flex");
+        }
+      }, 300);
+    }
+  }
+  
+  if (subtitle) {
+    const isMobile = window.innerWidth < 768;
+    if (isOpen && !isMobile) {
+      subtitle.classList.remove("hidden");
+      setTimeout(() => subtitle.classList.add("opacity-100"), 10);
+    } else {
+      subtitle.classList.remove("opacity-100");
+      setTimeout(() => { if (!panel.classList.contains("open") || isMobile) subtitle.classList.add("hidden"); }, 300);
+    }
   }
 }
 
@@ -426,17 +452,18 @@ byId("btnCollapsePlayers")?.addEventListener("click", () => {
     requestAnimationFrame(() => {
       panel.classList.remove("open");
       panel.style.height = "0px";
+      syncPlayersCollapseIcon();
     });
   } else {
     // Buka (Expand)
     panel.classList.add("open");
     panel.style.height = (panel.scrollHeight + 40) + "px";
+    syncPlayersCollapseIcon();
     // Bersihkan height setelah transisi agar konten bisa bertambah dinamis nantinya
     setTimeout(() => {
       if (panel.classList.contains("open")) panel.style.height = "none";
     }, 450);
   }
-  syncPlayersCollapseIcon();
   // Dispatch resize agar kontainer induk (seperti filterPanel) melakukan kalkulasi ulang
   window.dispatchEvent(new Event('resize'));
 });
