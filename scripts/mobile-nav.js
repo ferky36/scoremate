@@ -311,8 +311,20 @@ else init();
       }catch{}
 
       // Recap/Insight: only build jika ada data event
-      if (key==='recap') { if (hasEventData()) buildRecapInline(hostRecap); else hostRecap.innerHTML=''; }
-      if (key==='insight') { if (hasEventData()) buildInsightInline(hostInsight); else hostInsight.innerHTML=''; }
+      if (key==='recap') {
+        if (hasEventData()) buildRecapInline(hostRecap);
+        else hostRecap.innerHTML = `<div class="p-8 text-center bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-dashed border-gray-200 dark:border-gray-700">
+          <div class="text-gray-400 dark:text-gray-500 mb-2 flex justify-center">${getIcon('clock', 'w-10 h-10')}</div>
+          <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">${t('mobile.recap.noData','Belum ada data recap tersedia.')}</div>
+        </div>`;
+      }
+      if (key==='insight') {
+        if (hasEventData()) buildInsightInline(hostInsight);
+        else hostInsight.innerHTML = `<div class="p-8 text-center bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-dashed border-gray-200 dark:border-gray-700">
+          <div class="text-gray-400 dark:text-gray-500 mb-2 flex justify-center">${getIcon('screen', 'w-10 h-10')}</div>
+          <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">${t('mobile.insight.noData','Belum ada data insight tersedia.')}</div>
+        </div>`;
+      }
 
       // Enforce visibility guard in case other scripts toggle it afterwards
       try{ enforcePlayersSectionVisibility(); }catch{}
@@ -567,6 +579,18 @@ function buildRecapMobileUI(host){
   const root = document.createElement('div');
   root.className = 'grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6';
   host.appendChild(root);
+
+  if (!players.length) {
+    const empty = document.createElement('div');
+    empty.className = 'col-span-full p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700';
+    empty.innerHTML = `
+      <div class="text-slate-300 dark:text-slate-600 mb-3 flex justify-center">${getIcon('up', 'w-12 h-12')}</div>
+      <div class="text-slate-500 dark:text-slate-400 font-medium">${t('mobile.recap.noData','Belum ada data recap tersedia.')}</div>
+      <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">${t('ranking.error.noData','Belum ada data pertandingan.')}</div>
+    `;
+    root.appendChild(empty);
+    return;
+  }
 
   // Left column: filter + list
   const filterCol = document.createElement('div');

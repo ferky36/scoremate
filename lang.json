@@ -59,6 +59,14 @@
     "id": "Gagal memuat data: {message}",
     "en": "Failed to load data: {message}"
   },
+  "mobile.recap.noData": {
+    "id": "Belum ada data recap tersedia.",
+    "en": "No recap data available yet."
+  },
+  "mobile.insight.noData": {
+    "id": "Belum ada data insight tersedia.",
+    "en": "No insight data available yet."
+  },
   "ranking.sort.label": {
     "id": "Urutkan:",
     "en": "Sort by:"

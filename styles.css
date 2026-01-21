@@ -749,10 +749,16 @@ body {
 #playersList {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
-@media (min-width:640px) {
+@media (max-width: 500px) {
+  #playersList {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width:641px) {
   #playersList {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -1919,6 +1925,7 @@ input[type="time"].join-open-input {
   margin-top: 12px !important;
   padding: 1.25rem !important;
   border-width: 1px !important;
+  height: auto;
 }
 
 .dark .accordion-fluid {

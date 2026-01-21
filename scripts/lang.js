@@ -26,6 +26,8 @@
     "ranking.error.init": { "id": "Supabase client tidak terinisialisasi", "en": "Supabase client not initialized" },
     "ranking.error.noData": { "id": "Belum ada data pertandingan.", "en": "No match data available." },
     "ranking.error.fetch": { "id": "Gagal memuat data: {message}", "en": "Failed to load data: {message}" },
+    "mobile.recap.noData": { "id": "Belum ada data recap tersedia.", "en": "No recap data available yet." },
+    "mobile.insight.noData": { "id": "Belum ada data insight tersedia.", "en": "No insight data available yet." },
     "header.menu": { "id": "Menu", "en": "Menu" },
     "header.save": { "id": "Simpan", "en": "Save" },
     "header.makeLink": { "id": "Buat Link Event", "en": "Create Event Link" },

@@ -447,7 +447,7 @@ byId("btnCollapsePlayers")?.addEventListener("click", () => {
   
   if (panel.classList.contains("open")) {
     // Tutup (Collapse)
-    panel.style.height = panel.scrollHeight + "px"; // set eksplisit dulu buat transisi
+    panel.style.height = panel.offsetHeight + "px"; // set pixel saat ini
     panel.offsetHeight; // force reflow
     requestAnimationFrame(() => {
       panel.classList.remove("open");
@@ -457,11 +457,16 @@ byId("btnCollapsePlayers")?.addEventListener("click", () => {
   } else {
     // Buka (Expand)
     panel.classList.add("open");
-    panel.style.height = (panel.scrollHeight + 40) + "px";
-    syncPlayersCollapseIcon();
+    const targetHeight = panel.scrollHeight; 
+    panel.style.height = "0px"; // Mulai dari 0
+    panel.offsetHeight; // force reflow
+    // requestAnimationFrame(() => {
+      panel.style.height = targetHeight + "px";
+      syncPlayersCollapseIcon();
+    // });
     // Bersihkan height setelah transisi agar konten bisa bertambah dinamis nantinya
     setTimeout(() => {
-      if (panel.classList.contains("open")) panel.style.height = "none";
+      if (panel.classList.contains("open")) panel.style.height = ""; 
     }, 450);
   }
   // Dispatch resize agar kontainer induk (seperti filterPanel) melakukan kalkulasi ulang
