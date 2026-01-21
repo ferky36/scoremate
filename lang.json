@@ -59,6 +59,54 @@
     "id": "Gagal memuat data: {message}",
     "en": "Failed to load data: {message}"
   },
+  "ranking.sort.label": {
+    "id": "Urutkan:",
+    "en": "Sort by:"
+  },
+  "ranking.sort.winRate": {
+    "id": "Win Rate",
+    "en": "Win Rate"
+  },
+  "ranking.sort.games_played": {
+    "id": "Main (GP)",
+    "en": "Games Played (GP)"
+  },
+  "ranking.sort.wins": {
+    "id": "Menang (W)",
+    "en": "Wins (W)"
+  },
+  "ranking.sort.losses": {
+    "id": "Kalah (L)",
+    "en": "Losses (L)"
+  },
+  "ranking.sort.draws": {
+    "id": "Seri (D)",
+    "en": "Draws (D)"
+  },
+  "ranking.sort.total_points_for": {
+    "id": "Poin (PF)",
+    "en": "Points For (PF)"
+  },
+  "ranking.sort.diff": {
+    "id": "Selisih (Diff)",
+    "en": "Difference (Diff)"
+  },
+  "ranking.loading.title": {
+    "id": "Memuat Ranking...",
+    "en": "Fetching Rankings..."
+  },
+  "ranking.loading.subtitle": {
+    "id": "Kami sedang mengumpulkan statistik pemain terbaru dari Cloud...",
+    "en": "We're gathering the latest player statistics from the Cloud..."
+  },
+  "stats.loading.title": {
+    "id": "Memuat Statistik...",
+    "en": "Loading Statistics..."
+  },
+  "stats.loading.subtitle": {
+    "id": "Menyiapkan ringkasan performa Anda...",
+    "en": "Preparing your performance summary..."
+  },
   "header.menu": {
     "id": "Menu",
     "en": "Menu"

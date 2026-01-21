@@ -10,7 +10,20 @@
 
   function hideModal() {
     modal.classList.add('hidden');
-    container.innerHTML = '<div class="flex items-center justify-center py-12"><svg class="animate-spin h-8 w-8 text-indigo-600" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg></div>';
+    // Enhanced Premium Loader
+    container.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-20 px-6 text-center">
+        <div class="relative w-16 h-16 mb-6">
+          <div class="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-indigo-900/30"></div>
+          <div class="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
+          <div class="absolute inset-2 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center animate-pulse">
+            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+          </div>
+        </div>
+        <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-2 animate-pulse" data-i18n="ranking.loading.title">Fetching Rankings</h4>
+        <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto" data-i18n="ranking.loading.subtitle">We're gathering the latest player statistics from the cloud...</p>
+      </div>
+    `;
   }
 
   function showModal() {
@@ -25,8 +38,8 @@
   window.openGlobalRanking = showModal;
 
   async function fetchAndRenderRanking() {
+    const t = (key, fallback) => window.__i18n_get ? window.__i18n_get(key, fallback) : (fallback || key);
     try {
-      const t = (key, fallback) => window.__i18n_get ? window.__i18n_get(key, fallback) : (fallback || key);
 
       if (!window.sb) {
         container.innerHTML = `<div class="p-8 text-center text-red-500">${t('ranking.error.init', 'Supabase client not initialized')}</div>`;
@@ -73,15 +86,15 @@
       let currentSort = 'winRate'; 
       let currentData = [...processed];
 
+
       const sortOptions = [
-        { key: 'winRate', label: 'Win Rate' },
-        { key: 'games_played', label: 'Games Played' },
-        { key: 'wins', label: 'Wins' },
-        { key: 'losses', label: 'Losses' },
-        { key: 'draws', label: 'Draws' },
-        { key: 'total_points_for', label: 'Points For' },
-        { key: 'total_points_against', label: 'Points Against' },
-        { key: 'diff', label: 'Point Difference' }
+        { key: 'winRate', label: t('ranking.sort.winRate', 'Win Rate') },
+        { key: 'games_played', label: t('ranking.sort.games_played', 'Games Played') },
+        { key: 'wins', label: t('ranking.sort.wins', 'Wins') },
+        { key: 'losses', label: t('ranking.sort.losses', 'Losses') },
+        { key: 'draws', label: t('ranking.sort.draws', 'Draws') },
+        { key: 'total_points_for', label: t('ranking.sort.total_points_for', 'Points For') },
+        { key: 'diff', label: t('ranking.sort.diff', 'Difference') }
       ];
 
       function doSort(key) {
@@ -102,14 +115,15 @@
 
       // Create Controls UI
       const controlsDiv = document.createElement('div');
-      controlsDiv.className = 'flex items-center justify-end mb-2 gap-2';
+      // Sticky top, z-50 to be above the table header's z-index
+      controlsDiv.className = 'sticky top-0 z-[50] bg-white dark:bg-gray-900 flex items-center justify-end py-3 gap-2 border-b border-gray-100 dark:border-gray-800';
       
       const label = document.createElement('label');
       label.className = 'text-xs font-semibold text-gray-500 dark:text-gray-400';
-      label.textContent = 'Sort by:';
+      label.textContent = t('ranking.sort.label', 'Sort by:');
 
       const select = document.createElement('select');
-      select.className = 'text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-emerald-500 focus:border-emerald-500';
+      select.className = 'text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-emerald-500 focus:border-emerald-500 mr-2';
       
       sortOptions.forEach(opt => {
         const o = document.createElement('option');
@@ -129,14 +143,6 @@
       // Clear and Append
       container.innerHTML = '';
       container.appendChild(controlsDiv);
-      // renderTable appends to container but we want to append TABLE to container. 
-      // Existing renderTable creates new table and wipes container??
-      // Let's modify renderTable to NOT wipe container, or handle appending.
-      // Wait, original renderTable: "container.innerHTML = ''; container.appendChild(table);"
-      // I need to change renderTable to be smarter/simpler.
-      
-      // Actually, define a local render helper that appends to a wrapper?
-      // Or modify renderTable lines 134-135 (in original) to not clear, but replacing 'globalRankingTable' if exists.
       
       // Let's just create a table wrapper in container
       const tableWrap = document.createElement('div');
@@ -148,7 +154,6 @@
 
     } catch (err) {
       console.error('Global Ranking fetch fail', err);
-      const t = (key, fallback) => window.__i18n_get ? window.__i18n_get(key, fallback) : (fallback || key);
       const raw = t('ranking.error.fetch', 'Gagal memuat data: {message}');
       const msg = raw.replace('{message}', err.message);
       container.innerHTML = `<div class="p-8 text-center text-red-500">${msg}</div>`;
@@ -176,18 +181,18 @@
     const thBase = "px-4 py-3 text-center transition-colors duration-200";
 
     table.innerHTML = `
-      <thead class="sticky top-0 bg-white dark:bg-gray-900 z-10 shadow-sm">
-        <tr class="border-b border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-500 font-semibold uppercase text-[10px] tracking-wider">
-          <th class="px-4 py-3 text-center w-12 bg-white dark:bg-gray-900">#</th>
-          <th class="px-4 py-3 bg-white dark:bg-gray-900 sticky left-0 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] dark:shadow-none min-w-[140px]">${t('ranking.col.player', 'Player')}</th>
-          <th class="${thBase} ${hlHeader('games_played')}">${t('ranking.col.gp', 'GP')}</th>
-          <th class="${thBase} ${hlHeader('wins')} ${activeSortKey!=='wins'?'text-emerald-600 dark:text-emerald-400':''}">${t('ranking.col.w', 'W')}</th>
-          <th class="${thBase} ${hlHeader('losses')} ${activeSortKey!=='losses'?'text-rose-500':''}">${t('ranking.col.l', 'L')}</th>
-          <th class="${thBase} ${hlHeader('draws')} ${activeSortKey!=='draws'?'text-amber-500':''}">${t('ranking.col.d', 'D')}</th>
-          <th class="${thBase} ${hlHeader('total_points_for')} text-right">${t('ranking.col.pf', 'PF')}</th>
-          <th class="${thBase} ${hlHeader('total_points_against')} text-right">${t('ranking.col.pa', 'PA')}</th>
-          <th class="${thBase} ${hlHeader('diff')} text-right">${t('ranking.col.diff', 'Diff')}</th>
-          <th class="${thBase} ${hlHeader('winRate')} text-right font-bold text-gray-900 dark:text-white">${t('ranking.col.winrate', 'WinRate')}</th>
+      <thead class="sticky top-[50px] z-30 shadow-sm bg-white dark:bg-gray-900">
+        <tr class="text-gray-400 dark:text-gray-500 font-semibold uppercase text-[10px] tracking-wider">
+          <th class="px-4 py-3 text-center w-12 bg-white dark:bg-gray-900 sticky left-0 z-40 border-b border-gray-100 dark:border-gray-800">#</th>
+          <th class="px-4 py-3 bg-white dark:bg-gray-900 sticky left-[48px] z-40 border-b border-gray-100 dark:border-gray-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] dark:shadow-none min-w-[140px]">${t('ranking.col.player', 'Player')}</th>
+          <th class="${thBase} ${hlHeader('games_played')} border-b border-gray-100 dark:border-gray-800">${t('ranking.col.gp', 'GP')}</th>
+          <th class="${thBase} ${hlHeader('wins')} ${activeSortKey!=='wins'?'text-emerald-600 dark:text-emerald-400':''} border-b border-gray-100 dark:border-gray-800">${t('ranking.col.w', 'W')}</th>
+          <th class="${thBase} ${hlHeader('losses')} ${activeSortKey!=='losses'?'text-rose-500':''} border-b border-gray-100 dark:border-gray-800">${t('ranking.col.l', 'L')}</th>
+          <th class="${thBase} ${hlHeader('draws')} ${activeSortKey!=='draws'?'text-amber-500':''} border-b border-gray-100 dark:border-gray-800">${t('ranking.col.d', 'D')}</th>
+          <th class="${thBase} ${hlHeader('total_points_for')} text-right border-b border-gray-100 dark:border-gray-800">${t('ranking.col.pf', 'PF')}</th>
+          <th class="${thBase} ${hlHeader('total_points_against')} text-right border-b border-gray-100 dark:border-gray-800">${t('ranking.col.pa', 'PA')}</th>
+          <th class="${thBase} ${hlHeader('diff')} text-right border-b border-gray-100 dark:border-gray-800">${t('ranking.col.diff', 'Diff')}</th>
+          <th class="${thBase} ${hlHeader('winRate')} text-right font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800">${t('ranking.col.winrate', 'WinRate')}</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-50 dark:divide-gray-800/50 text-gray-700 dark:text-gray-200">
@@ -206,8 +211,8 @@
       const wrColor = p.winRate >= 80 ? 'text-emerald-600' : (p.winRate >= 50 ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500');
 
       row.innerHTML = `
-        <td class="px-4 py-3.5 text-center font-bold text-gray-400 dark:text-gray-600 bg-white dark:bg-gray-900">${idx + 1}</td>
-        <td class="px-4 py-3.5 sticky left-0 z-10 bg-white dark:bg-gray-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] dark:shadow-none">
+        <td class="px-4 py-3.5 text-center font-bold text-gray-400 dark:text-gray-600 bg-white dark:bg-gray-900 sticky left-0 z-10 border-r border-gray-50 dark:border-gray-800/30">${idx + 1}</td>
+        <td class="px-4 py-3.5 sticky left-[48px] z-10 bg-white dark:bg-gray-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] dark:shadow-none border-r border-gray-50 dark:border-gray-800/30">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-400 border border-gray-200 dark:border-slate-700">
               <img src="${avatarUrl}" class="w-full h-full object-cover" onerror="this.src='icons/default-avatar.png'">
@@ -216,17 +221,12 @@
               ${(() => {
                 const u = window.currentUser;
                 let isMe = false;
-                
-                // Debugging
                 const n = p.display_name;
                 const uid_p = p.player_uid || p.uid; 
-                
-                // console.log(`[Ranking] Render row: ${n}, User detected:`, !!u); 
 
                 if (u) {
-                  const myName = u.profile_name || u.user_metadata?.full_name; // Use fetched profile name first
+                  const myName = u.profile_name || u.user_metadata?.full_name; 
                   const myEmailName = u.email ? u.email.split('@')[0] : '';
-                  
                   if (uid_p && uid_p === u.id) isMe = true;
                   else if (myName && n === myName) isMe = true;
                   else if (myEmailName && n === myEmailName) isMe = true;

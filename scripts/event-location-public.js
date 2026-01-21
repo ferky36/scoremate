@@ -294,7 +294,23 @@ try{
       updateViewStatsVisibility();
       try{ if (sb && sb.auth && typeof sb.auth.onAuthStateChange === 'function') sb.auth.onAuthStateChange(()=>{ updateViewStatsVisibility().catch(()=>{}); }); }catch{}
 
-      function hideModal(){ modal.classList.add('hidden'); container.innerHTML = '<div class="p-6 muted">Loading...</div>'; }
+      function hideModal(){ 
+        modal.classList.add('hidden'); 
+        // Ready premium loader for next time
+        container.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-20 px-6 text-center">
+            <div class="relative w-16 h-16 mb-6">
+              <div class="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-indigo-900/30"></div>
+              <div class="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
+              <div class="absolute inset-2 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center animate-pulse">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+              </div>
+            </div>
+            <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-2 animate-pulse" data-i18n="stats.loading.title">Loading Statistics...</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto" data-i18n="stats.loading.subtitle">Preparing your performance summary...</p>
+          </div>
+        `;
+      }
       function showModal(){ modal.classList.remove('hidden'); }
 
       closeBtn?.addEventListener('click', ()=> hideModal());
@@ -303,14 +319,37 @@ try{
         btn.addEventListener('click', async (ev)=>{
         ev.preventDefault();
         showModal();
+        
+        // Show initial loader while fetching very first user info
+        container.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-20 px-6 text-center">
+            <div class="relative w-16 h-16 mb-6">
+              <div class="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-indigo-900/30"></div>
+              <div class="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
+              <div class="absolute inset-2 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center animate-pulse">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+              </div>
+            </div>
+            <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-2 animate-pulse" data-i18n="stats.loading.title">Loading Statistics...</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto" data-i18n="stats.loading.subtitle">Preparing your performance summary...</p>
+          </div>
+        `;
+        try{ window.__i18n_apply?.(); }catch(e){}
+
+        // fetch user
+        let user = null;
+        try{ const r = await sb.auth.getUser(); user = r?.data?.user || null; }catch(e){ user = null; }
+        if (!user){ container.innerHTML = '<div class="p-8 text-center text-red-500">Please login to view your stats.</div>'; return; }
+        const uid = user.id;
+
         // Render redesigned UI: profile header + last-5 badges, filters under avatar, overview cards and history
         container.innerHTML = `
           <div class="mb-4">
-            <div class="rounded-lg p-4 md:p-6 bg-white dark:bg-slate-900">
+            <div class="rounded-lg p-4 md:p-6 bg-white dark:bg-slate-900 shadow-sm border border-gray-100 dark:border-slate-800">
               <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
                 <div class="flex items-center gap-4">
                   <div class="relative w-20 h-20 md:w-24 md:h-24 group">
-                    <div class="w-full h-full rounded-full ring-4 ring-emerald-400 overflow-hidden bg-gray-100 dark:bg-slate-700 flex items-center justify-center relative">
+                    <div class="w-full h-full rounded-full ring-4 ring-indigo-50 dark:ring-indigo-900/30 overflow-hidden bg-gray-100 dark:bg-slate-700 flex items-center justify-center relative shadow-inner">
                        <img id="ps_avatar" src="" alt="avatar" class="w-full h-full object-cover" onerror="this.style.display='none'"/>
                        <div id="ps_avatar_overlay" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer z-10" title="Upload Photo">
                           <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -329,10 +368,14 @@ try{
                 </div>
                 <div class="flex-1 w-full">
                   <div class="text-center md:text-left">
-                    <div id="ps_name" class="text-2xl font-bold text-gray-900 dark:text-white">Player</div>
+                    <div id="ps_name" class="text-2xl font-bold text-gray-900 dark:text-white pulse-subtle">...</div>
                     <div id="ps_location" class="text-sm text-gray-500 dark:text-slate-300">Padel Pro</div>
                     <div class="mt-4">
-                      <div class="flex items-center justify-center md:justify-start gap-2" id="ps_last5"></div>
+                      <div class="flex items-center justify-center md:justify-start gap-2" id="ps_last5">
+                        <div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-slate-800 animate-pulse"></div>
+                        <div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-slate-800 animate-pulse"></div>
+                        <div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-slate-800 animate-pulse"></div>
+                      </div>
                     </div>
                     <div class="mt-3 flex justify-center md:justify-start">
                       <button id="btnGlobalRanking" data-i18n="ranking.viewButton" class="px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-100 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition flex items-center gap-2 w-full md:w-auto justify-center shadow-sm">
@@ -361,32 +404,38 @@ try{
               </div>
             </div>
             <div class="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-              <div class="p-3 md:p-4 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg shadow-md text-center">
-                <div data-i18n="stats.matches" class="text-xs md:text-sm text-gray-500 dark:text-slate-300 uppercase">Matches</div>
-                <div id="ps_card_matches" class="text-xl md:text-2xl font-bold mt-1 md:mt-2">0</div>
-                <div data-i18n="stats.totalPlayed" class="text-[10px] md:text-xs text-gray-400 dark:text-slate-400">Total Played</div>
+              <div class="p-3 md:p-4 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg shadow-md text-center border border-gray-50 dark:border-slate-700/50">
+                <div data-i18n="stats.matches" class="text-xs md:text-sm text-gray-400 dark:text-slate-400 uppercase font-semibold">Matches</div>
+                <div id="ps_card_matches" class="text-xl md:text-2xl font-bold mt-1 md:mt-2 animate-pulse text-gray-200 dark:text-gray-700">--</div>
+                <div data-i18n="stats.totalPlayed" class="text-[10px] md:text-xs text-gray-300 dark:text-slate-500">Total Played</div>
               </div>
-              <div class="p-3 md:p-4 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg shadow-md text-center">
-                <div data-i18n="stats.winRate" class="text-xs md:text-sm text-gray-500 dark:text-slate-300 uppercase">Win Rate</div>
-                <div id="ps_card_winrate" class="text-xl md:text-2xl font-bold mt-1 md:mt-2">0%</div>
-                <div data-i18n="stats.range" class="text-[10px] md:text-xs text-gray-400 dark:text-slate-400">Last Range</div>
+              <div class="p-3 md:p-4 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg shadow-md text-center border border-gray-50 dark:border-slate-700/50">
+                <div data-i18n="stats.winRate" class="text-xs md:text-sm text-gray-400 dark:text-slate-400 uppercase font-semibold">Win Rate</div>
+                <div id="ps_card_winrate" class="text-xl md:text-2xl font-bold mt-1 md:mt-2 animate-pulse text-gray-200 dark:text-gray-700">--%</div>
+                <div data-i18n="stats.range" class="text-[10px] md:text-xs text-gray-300 dark:text-slate-500">Last Range</div>
               </div>
-              <div class="p-3 md:p-4 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg shadow-md text-center">
-                <div data-i18n="stats.wins" class="text-xs md:text-sm text-gray-500 dark:text-slate-300 uppercase">Wins</div>
-                <div id="ps_card_wins" class="text-xl md:text-2xl font-bold mt-1 md:mt-2">0</div>
+              <div class="p-3 md:p-4 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg shadow-md text-center border border-gray-50 dark:border-slate-700/50">
+                <div data-i18n="stats.wins" class="text-xs md:text-sm text-gray-400 dark:text-slate-400 uppercase font-semibold">Wins</div>
+                <div id="ps_card_wins" class="text-xl md:text-2xl font-bold mt-1 md:mt-2 animate-pulse text-gray-200 dark:text-gray-700">--</div>
               </div>
-              <div class="p-3 md:p-4 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg shadow-md text-center">
-                <div data-i18n="stats.losses" class="text-xs md:text-sm text-gray-500 dark:text-slate-300 uppercase">Losses</div>
-                <div id="ps_card_losses" class="text-xl md:text-2xl font-bold mt-1 md:mt-2">0</div>
+              <div class="p-3 md:p-4 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg shadow-md text-center border border-gray-50 dark:border-slate-700/50">
+                <div data-i18n="stats.losses" class="text-xs md:text-sm text-gray-400 dark:text-slate-400 uppercase font-semibold">Losses</div>
+                <div id="ps_card_losses" class="text-xl md:text-2xl font-bold mt-1 md:mt-2 animate-pulse text-gray-200 dark:text-gray-700">--</div>
               </div>
-              <div class="col-span-2 md:col-span-1 p-3 md:p-4 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg shadow-md text-center">
-                <div data-i18n="stats.draws" class="text-xs md:text-sm text-gray-500 dark:text-slate-300 uppercase">Draws</div>
-                <div id="ps_card_draws" class="text-xl md:text-2xl font-bold mt-1 md:mt-2">0</div>
+              <div class="col-span-2 md:col-span-1 p-3 md:p-4 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg shadow-md text-center border border-gray-50 dark:border-slate-700/50">
+                <div data-i18n="stats.draws" class="text-xs md:text-sm text-gray-400 dark:text-slate-400 uppercase font-semibold">Draws</div>
+                <div id="ps_card_draws" class="text-xl md:text-2xl font-bold mt-1 md:mt-2 animate-pulse text-gray-200 dark:text-gray-700">--</div>
               </div>
             </div>
           </div>
           <div class="mt-4">
-            <div id="psHistoryPane" class="mt-4"></div>
+            <div id="psHistoryPane" class="mt-4">
+               <div class="space-y-4">
+                  <div class="h-12 bg-gray-50 dark:bg-slate-800/50 rounded-xl animate-pulse"></div>
+                  <div class="h-12 bg-gray-50 dark:bg-slate-800/50 rounded-xl animate-pulse w-5/6"></div>
+                  <div class="h-12 bg-gray-50 dark:bg-slate-800/50 rounded-xl animate-pulse w-4/6"></div>
+               </div>
+            </div>
           </div>
         `;
 
@@ -453,11 +502,6 @@ try{
           // Optional, maybe annoying. Let's stick to input event.
         }
 
-        // fetch user
-        let user = null;
-        try{ const r = await sb.auth.getUser(); user = r?.data?.user || null; }catch(e){ user = null; }
-        if (!user){ if (paneHistory) paneHistory.innerHTML = '<div class="p-4">Please login to view your stats.</div>'; return; }
-        const uid = user.id;
         
         // Fetch user name and avatar
         let userName = 'You';
@@ -466,6 +510,13 @@ try{
           const { data: prof } = await sb.from('profiles').select('full_name, avatar_url').eq('id', uid).maybeSingle();
           userName = prof?.full_name || user?.user_metadata?.full_name || 'You';
           userAvatar = prof?.avatar_url;
+          
+          // Clear name pulse
+          const nameEl = document.getElementById('ps_name');
+          if (nameEl) {
+            nameEl.textContent = userName;
+            nameEl.classList.remove('pulse-subtle', 'animate-pulse');
+          }
         }catch{}
 
         // --- Avatar Logic ---
@@ -568,11 +619,12 @@ try{
         async function renderLast5Badges(lastMatches){
           const wrap = document.getElementById('ps_last5'); if (!wrap) return;
           wrap.innerHTML = '';
+          wrap.classList.remove('animate-pulse');
           for (const m of lastMatches.slice(0,5)){
-            const badge = document.createElement('div'); badge.className = 'px-2 py-1 rounded-md text-white text-sm';
-            if (m.result === 'win') { badge.classList.add('bg-emerald-600'); badge.textContent = 'W'; }
-            else if (m.result === 'loss') { badge.classList.add('bg-red-600'); badge.textContent = 'L'; }
-            else if (m.result === 'draw') { badge.classList.add('bg-amber-600'); badge.textContent = 'D'; }
+            const badge = document.createElement('div'); badge.className = 'px-2 py-1 rounded-md text-white text-sm shadow-sm font-bold scale-95 hover:scale-100 transition';
+            if (m.result === 'win') { badge.classList.add('bg-emerald-500'); badge.textContent = 'W'; }
+            else if (m.result === 'loss') { badge.classList.add('bg-rose-500'); badge.textContent = 'L'; }
+            else if (m.result === 'draw') { badge.classList.add('bg-amber-500'); badge.textContent = 'D'; }
             else { badge.classList.add('bg-gray-400'); badge.textContent = '-'; }
             wrap.appendChild(badge);
           }
@@ -586,6 +638,12 @@ try{
           const elLosses = document.getElementById('ps_card_losses');
           const elDraws = document.getElementById('ps_card_draws');
           if (!elMatches && !elWinRate && !elWins && !elLosses && !elDraws) return;
+          
+          // Show skeletons on cards
+          [elMatches, elWinRate, elWins, elLosses, elDraws].forEach(el => {
+            if (el) el.classList.add('animate-pulse', 'text-gray-200', 'dark:text-gray-700');
+          });
+
           try{
             // fetch match rows in date range and compute summary from them
             const { data: rowsData, error: rowsErr } = await sb.from('player_match_rows_for_current_user_matches')
@@ -630,7 +688,10 @@ try{
               draws = matches.filter(m=> (m.players.find(p=>p.player_id===uid)?.result === 'draw')).length;
             }
             const winRate = (matchesCount>0) ? Math.round((wins / matchesCount) * 100) : 0;
-            if (elMatches) elMatches.textContent = String(matchesCount);
+            if (elMatches) {
+              elMatches.textContent = String(matchesCount);
+              elMatches.classList.remove('animate-pulse', 'text-gray-200', 'dark:text-gray-700');
+            }
             
             const baseClass = "text-xl md:text-2xl font-bold mt-1 md:mt-2";
             
@@ -649,18 +710,22 @@ try{
             if (elWinRate) {
               elWinRate.textContent = String(winRate) + '%';
               elWinRate.className = baseClass + ' ' + wrColor;
+              elWinRate.classList.remove('animate-pulse');
             }
             if (elWins) {
               elWins.textContent = String(wins);
               elWins.className = baseClass + ' text-emerald-600 dark:text-emerald-400';
+              elWins.classList.remove('animate-pulse');
             }
             if (elLosses) {
               elLosses.textContent = String(losses);
               elLosses.className = baseClass + ' text-rose-600 dark:text-rose-500';
+              elLosses.classList.remove('animate-pulse');
             }
             if (elDraws) {
               elDraws.textContent = String(draws);
               elDraws.className = baseClass + ' text-amber-500 dark:text-amber-400';
+              elDraws.classList.remove('animate-pulse');
             }
 
             // recent matches list (last 5 within range, falling back to latest overall if none)
@@ -683,6 +748,9 @@ try{
               const nameEl = document.getElementById('ps_name'); if (nameEl) nameEl.textContent = prof?.full_name || (user.user_metadata?.full_name || 'Player');
             }catch{}
           }catch(e){
+            [elMatches, elWinRate, elWins, elLosses, elDraws].forEach(el => {
+              if (el) el.classList.remove('animate-pulse', 'text-gray-200', 'dark:text-gray-700');
+            });
             if (elMatches) elMatches.textContent = '0';
             if (elWinRate) elWinRate.textContent = '0%';
             if (elWins) elWins.textContent = '0';
@@ -777,7 +845,13 @@ try{
 
         async function loadHistory(f,t,playerFilter){
           const historyPane = document.getElementById('psHistoryPane'); if (!historyPane) return;
-          historyPane.innerHTML = '<div class="p-4 muted">Loading...</div>';
+          historyPane.innerHTML = `
+            <div class="space-y-4">
+              <div class="h-12 bg-gray-50 dark:bg-slate-800/50 rounded-xl animate-pulse"></div>
+              <div class="h-12 bg-gray-50 dark:bg-slate-800/50 rounded-xl animate-pulse w-5/6"></div>
+              <div class="h-12 bg-gray-50 dark:bg-slate-800/50 rounded-xl animate-pulse w-4/6"></div>
+            </div>
+          `;
           try{
             const { data, error } = await sb.from('player_match_rows_for_current_user_matches')
               .select('event_state_id,session_date,event_title,court_index,round_index,player_label,display_name,team,score_for,score_against,result,player_id')
@@ -950,6 +1024,14 @@ try{
           const f = document.getElementById('psFrom').value || fromIso;
           const t = document.getElementById('psTo').value || toIso;
           const pf = (playerFilterEl && playerFilterEl.value) ? playerFilterEl.value.trim() : '';
+          
+          // Re-trigger pulse for cards
+          const cards = ['ps_card_matches','ps_card_winrate','ps_card_wins','ps_card_losses','ps_card_draws'];
+          cards.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('animate-pulse', 'text-gray-200', 'dark:text-gray-700');
+          });
+
           loadSummary(f,t,pf);
           loadHistory(f,t,pf);
         });
