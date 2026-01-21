@@ -87,6 +87,10 @@
     "id": "Poin (PF)",
     "en": "Points For (PF)"
   },
+  "ranking.sort.total_points_against": {
+    "id": "Poin Lawan (PA)",
+    "en": "Points Against (PA)"
+  },
   "ranking.sort.diff": {
     "id": "Selisih (Diff)",
     "en": "Difference (Diff)"

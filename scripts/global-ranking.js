@@ -88,13 +88,14 @@
 
 
       const sortOptions = [
-        { key: 'winRate', label: t('ranking.sort.winRate', 'Win Rate') },
         { key: 'games_played', label: t('ranking.sort.games_played', 'Games Played') },
         { key: 'wins', label: t('ranking.sort.wins', 'Wins') },
         { key: 'losses', label: t('ranking.sort.losses', 'Losses') },
         { key: 'draws', label: t('ranking.sort.draws', 'Draws') },
         { key: 'total_points_for', label: t('ranking.sort.total_points_for', 'Points For') },
-        { key: 'diff', label: t('ranking.sort.diff', 'Difference') }
+        { key: 'total_points_against', label: t('ranking.sort.total_points_against', 'Points Against') },
+        { key: 'diff', label: t('ranking.sort.diff', 'Difference') },
+        { key: 'winRate', label: t('ranking.sort.winRate', 'Win Rate') }
       ];
 
       function doSort(key) {
@@ -115,8 +116,9 @@
 
       // Create Controls UI
       const controlsDiv = document.createElement('div');
-      // Sticky top, z-50 to be above the table header's z-index
-      controlsDiv.className = 'sticky top-0 z-[50] bg-white dark:bg-gray-900 flex items-center justify-end py-3 gap-2 border-b border-gray-100 dark:border-gray-800';
+      // Fix: sticky left-0 w-full so it stays over the viewport during horizontal scroll
+      // justify-end keeps the sort label/select on the right. px-4/6 for padding.
+      controlsDiv.className = 'sticky top-0 left-0 w-full z-[50] bg-white dark:bg-gray-900 flex items-center justify-end py-3 px-4 md:px-6 gap-2 border-b border-gray-100 dark:border-gray-800';
       
       const label = document.createElement('label');
       label.className = 'text-xs font-semibold text-gray-500 dark:text-gray-400';
