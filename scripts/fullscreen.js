@@ -2,13 +2,15 @@
 
 (function initFullscreenFeature() {
   const btn = document.getElementById('btnFullscreen');
-  if (!btn) return;
+  const wrap = document.getElementById('fsFloatingWrap');
+  const btnHide = document.getElementById('btnHideFsToggle');
+  if (!btn || !wrap) return;
 
   const iconExpand = document.getElementById('fsIconExpand');
   const iconCompress = document.getElementById('fsIconCompress');
   
   let wlSentinel = null;
-  let lastFSState = false; // Track state to prevent multiple toasts
+  let lastFSState = false;
 
   async function requestWL() {
     if (!('wakeLock' in navigator)) return;
@@ -27,6 +29,12 @@
   }
 
   function toggleFullscreen() {
+    // If collapsed, clicking the handle should restore it instead of toggling FS
+    if (wrap.classList.contains('is-collapsed')) {
+      restoreToggle();
+      return;
+    }
+
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(err => {
         console.error(`Fullscreen error: ${err.message}`);
@@ -36,10 +44,19 @@
     }
   }
 
+  function hideToggle(e) {
+    if (e) e.stopPropagation();
+    wrap.classList.add('is-collapsed');
+    if (btnHide) btnHide.classList.add('hidden');
+  }
+
+  function restoreToggle() {
+    wrap.classList.remove('is-collapsed');
+    if (btnHide) btnHide.classList.remove('hidden');
+  }
+
   function syncUI() {
     const isFS = !!document.fullscreenElement;
-    
-    // Update Icons
     if (iconExpand) iconExpand.classList.toggle('hidden', isFS);
     if (iconCompress) iconCompress.classList.toggle('hidden', !isFS);
     
@@ -52,10 +69,8 @@
       btn.title = __i18n_get(labelKey, fallback);
     }
 
-    // Only trigger effects if state changed
     if (isFS !== lastFSState) {
       lastFSState = isFS;
-      
       if (isFS) {
         requestWL();
         if (typeof showToast === 'function') {
@@ -68,8 +83,18 @@
   }
 
   btn.addEventListener('click', toggleFullscreen);
+  btnHide?.addEventListener('click', hideToggle);
   document.addEventListener('fullscreenchange', syncUI);
   
-  // Initial sync
+  // Hover effect to show hide button
+  wrap.addEventListener('mouseenter', () => {
+    if (!wrap.classList.contains('is-collapsed') && btnHide) {
+      btnHide.style.opacity = '1';
+    }
+  });
+  wrap.addEventListener('mouseleave', () => {
+    if (btnHide) btnHide.style.opacity = '0';
+  });
+
   syncUI();
 })();

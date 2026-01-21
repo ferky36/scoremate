@@ -2408,24 +2408,39 @@ input[type="time"].join-open-input {
   }
 }
 /* Floating Fullscreen Toggle */
+
+/* Collapsible Floating Fullscreen Toggle */
+#fsFloatingWrap {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
 #btnFullscreen {
   box-shadow: 0 8px 32px rgba(79, 70, 229, 0.25);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease;
   opacity: 0.85;
 }
 
+#fsFloatingWrap.is-collapsed {
+  transform: translateX(calc(100% - 15px));
+  opacity: 0.5;
+}
+
+#fsFloatingWrap.is-collapsed:hover {
+  opacity: 0.9;
+  transform: translateX(calc(100% - 22px));
+}
+
 #btnFullscreen:hover {
-  opacity: 1 !important;
-  transform: scale(1.1) translateX(-4px) !important;
+  opacity: 1;
   box-shadow: 0 12px 40px rgba(79, 70, 229, 0.4);
 }
 
-#btnFullscreen:active {
-  transform: scale(0.95);
+#btnHideFsToggle {
+  transition: opacity 0.2s ease;
 }
 
 @media (max-width: 767px) {
-  #btnFullscreen {
+  #fsFloatingWrap {
     right: 12px;
     bottom: 90px;
   }
