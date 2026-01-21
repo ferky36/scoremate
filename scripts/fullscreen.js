@@ -3,7 +3,6 @@
 (function initFullscreenFeature() {
   const btn = document.getElementById('btnFullscreen');
   const wrap = document.getElementById('fsFloatingWrap');
-  const btnHide = document.getElementById('btnHideFsToggle');
   if (!btn || !wrap) return;
 
   const iconExpand = document.getElementById('fsIconExpand');
@@ -29,12 +28,6 @@
   }
 
   function toggleFullscreen() {
-    // If collapsed, clicking the handle should restore it instead of toggling FS
-    if (wrap.classList.contains('is-collapsed')) {
-      restoreToggle();
-      return;
-    }
-
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(err => {
         console.error(`Fullscreen error: ${err.message}`);
@@ -42,17 +35,6 @@
     } else {
       document.exitFullscreen();
     }
-  }
-
-  function hideToggle(e) {
-    if (e) e.stopPropagation();
-    wrap.classList.add('is-collapsed');
-    if (btnHide) btnHide.classList.add('hidden');
-  }
-
-  function restoreToggle() {
-    wrap.classList.remove('is-collapsed');
-    if (btnHide) btnHide.classList.remove('hidden');
   }
 
   function syncUI() {
@@ -82,19 +64,29 @@
     }
   }
 
-  btn.addEventListener('click', toggleFullscreen);
-  btnHide?.addEventListener('click', hideToggle);
-  document.addEventListener('fullscreenchange', syncUI);
-  
-  // Hover effect to show hide button
-  wrap.addEventListener('mouseenter', () => {
-    if (!wrap.classList.contains('is-collapsed') && btnHide) {
-      btnHide.style.opacity = '1';
+  // Handle click on button
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent document click from triggering
+    
+    if (wrap.classList.contains('is-collapsed')) {
+      // Restore if collapsed
+      wrap.classList.remove('is-collapsed');
+    } else {
+      // Toggle FS if already visible
+      toggleFullscreen();
     }
   });
-  wrap.addEventListener('mouseleave', () => {
-    if (btnHide) btnHide.style.opacity = '0';
+
+  // Handle click outside to hide
+  document.addEventListener('click', (e) => {
+    // If clicking anywhere outside the wrap, hide it
+    if (!wrap.contains(e.target)) {
+      wrap.classList.add('is-collapsed');
+    }
   });
 
+  document.addEventListener('fullscreenchange', syncUI);
+  
+  // Initial sync
   syncUI();
 })();

@@ -2421,13 +2421,13 @@ input[type="time"].join-open-input {
 }
 
 #fsFloatingWrap.is-collapsed {
-  transform: translateX(calc(100% - 15px));
+  transform: translateX(calc(100% - 10px));
   opacity: 0.5;
 }
 
 #fsFloatingWrap.is-collapsed:hover {
-  opacity: 0.9;
-  transform: translateX(calc(100% - 22px));
+  opacity: 1;
+  transform: translateX(calc(100% - 20px));
 }
 
 #btnFullscreen:hover {
@@ -2435,13 +2435,12 @@ input[type="time"].join-open-input {
   box-shadow: 0 12px 40px rgba(79, 70, 229, 0.4);
 }
 
-#btnHideFsToggle {
-  transition: opacity 0.2s ease;
-}
-
 @media (max-width: 767px) {
   #fsFloatingWrap {
     right: 12px;
     bottom: 90px;
+  }
+  #fsFloatingWrap.is-collapsed {
+    transform: translateX(calc(100% - 8px));
   }
 }
