@@ -166,23 +166,28 @@
     table.className = 'w-full text-sm text-left border-collapse'; // removed mt-4 as controls have mb-2
     // ... rest of table gen ...
     // Helper to highlight active column
-    const hl = (key) => (key === activeSortKey) ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-1 ring-inset ring-indigo-200 dark:ring-indigo-800' : 'bg-white dark:bg-gray-900';
+    // Soft highlight, removing harsh rings ("less stiff")
+    const hlHeader = (key) => (key === activeSortKey) ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300' : 'bg-white dark:bg-gray-900';
+    
+    // Cell highlight: transparent background for visual column guide
+    const hlCell = (key) => (key === activeSortKey) ? 'bg-indigo-50/60 dark:bg-indigo-900/20' : '';
+    
     // Base Header Style
     const thBase = "px-4 py-3 text-center transition-colors duration-200";
 
     table.innerHTML = `
-      <thead class="sticky top-0 bg-white dark:bg-gray-900 z-10">
+      <thead class="sticky top-0 bg-white dark:bg-gray-900 z-10 shadow-sm">
         <tr class="border-b border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-500 font-semibold uppercase text-[10px] tracking-wider">
           <th class="px-4 py-3 text-center w-12 bg-white dark:bg-gray-900">#</th>
-          <th class="px-4 py-3 bg-white dark:bg-gray-900">${t('ranking.col.player', 'Player')}</th>
-          <th class="${thBase} ${hl('games_played')}">${t('ranking.col.gp', 'GP')}</th>
-          <th class="${thBase} ${hl('wins')} ${activeSortKey!=='wins'?'text-emerald-600 dark:text-emerald-400':''}">${t('ranking.col.w', 'W')}</th>
-          <th class="${thBase} ${hl('losses')} ${activeSortKey!=='losses'?'text-rose-500':''}">${t('ranking.col.l', 'L')}</th>
-          <th class="${thBase} ${hl('draws')} ${activeSortKey!=='draws'?'text-amber-500':''}">${t('ranking.col.d', 'D')}</th>
-          <th class="${thBase} ${hl('total_points_for')} text-right">${t('ranking.col.pf', 'PF')}</th>
-          <th class="${thBase} ${hl('total_points_against')} text-right">${t('ranking.col.pa', 'PA')}</th>
-          <th class="${thBase} ${hl('diff')} text-right">${t('ranking.col.diff', 'Diff')}</th>
-          <th class="${thBase} ${hl('winRate')} text-right font-bold text-gray-900 dark:text-white">${t('ranking.col.winrate', 'WinRate')}</th>
+          <th class="px-4 py-3 bg-white dark:bg-gray-900 sticky left-0 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] dark:shadow-none min-w-[140px]">${t('ranking.col.player', 'Player')}</th>
+          <th class="${thBase} ${hlHeader('games_played')}">${t('ranking.col.gp', 'GP')}</th>
+          <th class="${thBase} ${hlHeader('wins')} ${activeSortKey!=='wins'?'text-emerald-600 dark:text-emerald-400':''}">${t('ranking.col.w', 'W')}</th>
+          <th class="${thBase} ${hlHeader('losses')} ${activeSortKey!=='losses'?'text-rose-500':''}">${t('ranking.col.l', 'L')}</th>
+          <th class="${thBase} ${hlHeader('draws')} ${activeSortKey!=='draws'?'text-amber-500':''}">${t('ranking.col.d', 'D')}</th>
+          <th class="${thBase} ${hlHeader('total_points_for')} text-right">${t('ranking.col.pf', 'PF')}</th>
+          <th class="${thBase} ${hlHeader('total_points_against')} text-right">${t('ranking.col.pa', 'PA')}</th>
+          <th class="${thBase} ${hlHeader('diff')} text-right">${t('ranking.col.diff', 'Diff')}</th>
+          <th class="${thBase} ${hlHeader('winRate')} text-right font-bold text-gray-900 dark:text-white">${t('ranking.col.winrate', 'WinRate')}</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-50 dark:divide-gray-800/50 text-gray-700 dark:text-gray-200">
@@ -196,14 +201,13 @@
       row.className = 'hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors group';
       
       const avatarUrl = p.avatar_url || 'icons/default-avatar.png';
-      const initials = (p.display_name || '?').trim().charAt(0).toUpperCase();
-
+      
       const diffColor = p.diff > 0 ? 'text-emerald-600' : (p.diff < 0 ? 'text-rose-500' : '');
       const wrColor = p.winRate >= 80 ? 'text-emerald-600' : (p.winRate >= 50 ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500');
 
       row.innerHTML = `
-        <td class="px-4 py-3.5 text-center font-bold text-gray-400 dark:text-gray-600">${idx + 1}</td>
-        <td class="px-4 py-3.5">
+        <td class="px-4 py-3.5 text-center font-bold text-gray-400 dark:text-gray-600 bg-white dark:bg-gray-900">${idx + 1}</td>
+        <td class="px-4 py-3.5 sticky left-0 z-10 bg-white dark:bg-gray-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] dark:shadow-none">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-400 border border-gray-200 dark:border-slate-700">
               <img src="${avatarUrl}" class="w-full h-full object-cover" onerror="this.src='icons/default-avatar.png'">
@@ -217,34 +221,15 @@
                 const n = p.display_name;
                 const uid_p = p.player_uid || p.uid; 
                 
-                // Log ALWAYS to see if function runs and if user is detected
                 // console.log(`[Ranking] Render row: ${n}, User detected:`, !!u); 
 
                 if (u) {
                   const myName = u.profile_name || u.user_metadata?.full_name; // Use fetched profile name first
                   const myEmailName = u.email ? u.email.split('@')[0] : '';
                   
-                  // 1. UID Match
-                  if (uid_p && uid_p === u.id) {
-                     isMe = true;
-                    //  console.log(`[Ranking] Match UID: ${n} (${uid_p}) === Me (${u.id})`);
-                  } 
-                  // 2. Name Match
-                  else if (myName && n === myName) {
-                     isMe = true;
-                    //  console.log(`[Ranking] Match Name: ${n} === Me (${myName})`);
-                  }
-                  // 3. Email Match
-                  else if (myEmailName && n === myEmailName) {
-                     isMe = true;
-                    //  console.log(`[Ranking] Match Email: ${n} === Me (${myEmailName})`);
-                  }
-                  else {
-                     // Log failures for investigation
-                     // console.log(`[Ranking] No Match: ${n} (UID:${uid_p}) vs Me: ${myName}/${myEmailName} (${u.id})`);
-                  }
-                } else {
-                   // console.warn('[Ranking] window.currentUser is missing/null during render');
+                  if (uid_p && uid_p === u.id) isMe = true;
+                  else if (myName && n === myName) isMe = true;
+                  else if (myEmailName && n === myEmailName) isMe = true;
                 }
                 return isMe ? 
                 `<svg class="w-4 h-4 text-indigo-600 inline-block mr-1.5 -mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>` 
@@ -254,14 +239,14 @@
             </div>
           </div>
         </td>
-        <td class="px-4 py-3.5 text-center font-medium">${p.games_played}</td>
-        <td class="px-4 py-3.5 text-center font-bold text-emerald-600/80">${p.wins}</td>
-        <td class="px-4 py-3.5 text-center font-bold text-rose-500/80">${p.losses}</td>
-        <td class="px-4 py-3.5 text-center font-bold text-amber-500/80">${p.draws}</td>
-        <td class="px-4 py-3.5 text-right tabular-nums">${p.total_points_for}</td>
-        <td class="px-4 py-3.5 text-right tabular-nums text-gray-400 dark:text-gray-600">${p.total_points_against}</td>
-        <td class="px-4 py-3.5 text-right tabular-nums font-bold ${diffColor}">${p.diff > 0 ? '+' : ''}${p.diff}</td>
-        <td class="px-4 py-3.5 text-right font-extrabold tabular-nums ${wrColor}">${Math.round(p.winRate)}%</td>
+        <td class="px-4 py-3.5 text-center font-medium ${hlCell('games_played')}">${p.games_played}</td>
+        <td class="px-4 py-3.5 text-center font-bold text-emerald-600/80 ${hlCell('wins')}">${p.wins}</td>
+        <td class="px-4 py-3.5 text-center font-bold text-rose-500/80 ${hlCell('losses')}">${p.losses}</td>
+        <td class="px-4 py-3.5 text-center font-bold text-amber-500/80 ${hlCell('draws')}">${p.draws}</td>
+        <td class="px-4 py-3.5 text-right tabular-nums ${hlCell('total_points_for')}">${p.total_points_for}</td>
+        <td class="px-4 py-3.5 text-right tabular-nums text-gray-400 dark:text-gray-600 ${hlCell('total_points_against')}">${p.total_points_against}</td>
+        <td class="px-4 py-3.5 text-right tabular-nums font-bold ${diffColor} ${hlCell('diff')}">${p.diff > 0 ? '+' : ''}${p.diff}</td>
+        <td class="px-4 py-3.5 text-right font-extrabold tabular-nums ${wrColor} ${hlCell('winRate')}">${Math.round(p.winRate)}%</td>
       `;
       tbody.appendChild(row);
     });
