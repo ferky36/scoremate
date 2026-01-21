@@ -25,6 +25,12 @@ async function __joinAskYesNo(msg){
     overlay.onclick = (e)=>{ if (e.target===overlay) cleanup(false); };
   });
 }
+
+function getAdaptiveParent(){
+  const isMobile = window.innerWidth < 768;
+  return isMobile ? byId('hdrChips') : byId('hdrControls');
+}
+
 function ensureJoinControls(){
   const bar = byId('hdrControls'); if (!bar) return;
   if (!byId('btnJoinEvent')){
@@ -35,13 +41,34 @@ function ensureJoinControls(){
     j.addEventListener('click', openJoinFlow);
     bar.appendChild(j);
   }
-  if (!byId('joinStatus')){
-    const wrap = document.createElement('span');
+  
+  // NEW: Dedicated Join/Leave Event button for mobile
+  let btnJoinLeave = byId('btnJoinLeaveEvent');
+  if (!btnJoinLeave){
+    btnJoinLeave = document.createElement('button');
+    btnJoinLeave.id='btnJoinLeaveEvent';
+    btnJoinLeave.className='px-3 py-2 rounded-xl bg-emerald-600 text-white font-semibold shadow hover:opacity-90 hidden';
+    bar.appendChild(btnJoinLeave);
+  }
+  // Update text/listener (idempotent)
+  if (btnJoinLeave) {
+    // Only set text if empty (initially) - or leave it to refreshJoinUI? 
+    // refreshJoinUI handles text. We just ensure listener is linked.
+    btnJoinLeave.onclick = handleJoinLeaveClick;
+  }
+  
+  
+  const targetParent = getAdaptiveParent() || bar;
+  let wrap = byId('joinStatus');
+  if (wrap && wrap.parentElement !== targetParent) {
+    targetParent.appendChild(wrap);
+  }
+
+  if (!wrap){
+    wrap = document.createElement('span');
     wrap.id='joinStatus';
-    // Refined premium glass styling - matched height and font to buttons
     wrap.className='flex items-center gap-2 text-sm font-semibold hidden bg-white/20 backdrop-blur-md px-3 h-[42px] rounded-xl border border-white/30 shadow-sm ml-auto text-white';
     
-    // Status Indicator (green dot with glow for better feedback)
     const indicator = document.createElement('span');
     indicator.id='joinStatusIndicator';
     indicator.className='w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.6)]'; 
@@ -50,33 +77,36 @@ function ensureJoinControls(){
     name.id='joinedPlayerName'; 
     name.className='tracking-tight truncate flex-1';
     
-    const divider = document.createElement('div');
-    divider.className = 'w-px h-3 bg-white/20 mx-0.5';
-
-    const joinIcon = document.createElement('button');
-    joinIcon.id='btnJoinEventIcon';
-    joinIcon.className='p-1 rounded-lg text-emerald-300 hover:bg-white/10 transition-colors hidden';
-    // UserRoundPlus icon for a more modern "Join" feel
-    joinIcon.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21a8 8 0 0 1 13.292-6"/><circle cx="10" cy="8" r="5"/><path d="M19 16v6"/><path d="M16 19h6"/></svg>`;
-    joinIcon.title=__joinT('join.button','Join Event');
-    joinIcon.addEventListener('click', openJoinFlow);
-
     const edit = document.createElement('button');
     edit.id='btnEditSelfName';
     edit.className='p-1 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors';
     edit.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
     edit.title=__joinT('join.edit','Edit');
     edit.addEventListener('click', editSelfNameFlow);
+
+    wrap.appendChild(indicator); 
+    wrap.appendChild(name); 
+    wrap.appendChild(edit);
+    targetParent.appendChild(wrap);
+  }
+}
+
+// NEW: Handle Join/Leave Event button click (mobile dedicated button)
+async function handleJoinLeaveClick(){
+  if (!currentEventId){ showToast?.(__joinT('join.openFirst','Buka event terlebih dahulu.'), 'warn'); return; }
+  
+  try{
+    const user = window.currentUser || (await (window.getAuthUserCached ? getAuthUserCached() : sb.auth.getUser().then(r=>r.data))?.user) || null;
+    if (!user){ byId('loginModal')?.classList.remove('hidden'); return; }
     
-    const leave = document.createElement('button');
-    leave.id='btnLeaveSelf';
-    leave.className='p-1 rounded-lg text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-colors';
-    leave.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
-    leave.title=__joinT('join.leave','Leave');
-    leave.addEventListener('click', async ()=>{
-      if (!currentEventId) return;
+    const uid = user.id;
+    const found = findJoinedPlayerByUid(uid);
+    
+    if (found){
+      // User is joined -> trigger leave
       const ok = await __joinAskYesNo(__joinT('join.leaveConfirm','Keluar dari event (hapus nama Anda dari daftar pemain)?'));
       if (!ok) { showToast?.(__joinT('join.leaveCancelled','Batal keluar event.'), 'info'); return; }
+      
       try{
         showLoading(__joinT('join.leave','Leave')+'...');
         const res = await requestLeaveEventRPC();
@@ -99,15 +129,11 @@ function ensureJoinControls(){
         renderPlayersList?.(); renderAll?.();
       }catch(e){ showToast?.(__joinT('join.leaveFail','Gagal leave:') + ' ' + (e?.message||''), 'error'); }
       finally{ hideLoading(); refreshJoinUI(); }
-    });
-    wrap.appendChild(indicator); 
-    wrap.appendChild(name); 
-    wrap.appendChild(divider);
-    wrap.appendChild(edit); 
-    wrap.appendChild(joinIcon);
-    wrap.appendChild(leave);
-    bar.appendChild(wrap);
-  }
+    } else {
+      // User not joined -> trigger join
+      openJoinModal();
+    }
+  }catch{}
 }
 
 async function openJoinFlow(){
@@ -174,13 +200,20 @@ async function openJoinModal(){
   let suggestedName = '';
   let g = '', lv = '';
   try{
-    const data = await (window.getAuthUserCached ? getAuthUserCached() : sb.auth.getUser().then(r=>r.data));
-    const u = data?.user || null;
+    // Fix: Prefer synchronous currentUser to avoid auth race conditions
+    let u = window.currentUser;
+    if (!u) {
+       const data = await (window.getAuthUserCached ? getAuthUserCached() : sb.auth.getUser().then(r=>r.data));
+       u = data?.user || null;
+    }
     const uid = u?.id || '';
+
     const found = findJoinedPlayerByUid(uid);
     if (found){ suggestedName = found.name; g = playerMeta[found.name]?.gender||''; lv = playerMeta[found.name]?.level||''; }
+    
     // Prefer canonical full_name from public.profiles when available
-    if (!suggestedName){
+    // Fix: Guard against empty UID to prevent 400 error
+    if (uid && !suggestedName){
       try{
         const profileResp = await sb.from('profiles').select('full_name').eq('id', uid).maybeSingle();
         const prof = profileResp?.data || null;
@@ -429,7 +462,8 @@ function hideEditNameModal(){
 async function editSelfNameFlow(){
   try{
     if (!currentEventId){ showToast?.(__joinT('join.openFirst','Buka event terlebih dahulu.'), 'warn'); return; }
-    let user=null; try{ const data = await (window.getAuthUserCached ? getAuthUserCached() : sb.auth.getUser().then(r=>r.data)); user = data?.user || null; }catch{}
+    // Use sync user if available to prevent race condition on load
+    const user = window.currentUser || (await (window.getAuthUserCached ? getAuthUserCached() : sb.auth.getUser().then(r=>r.data))?.user) || null;
     if (!user){ byId('loginModal')?.classList.remove('hidden'); return; }
     
     // Find if user is already in players list

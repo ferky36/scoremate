@@ -32,6 +32,10 @@ try {
           if (viaCode && !once){ sessionStorage.setItem('auth.reloadOnce','1'); location.reload(); return; }
         }
         updateAuthUI?.();
+        // Refresh role and dependent UI immediately on login/logout
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          if (typeof loadAccessRoleFromCloud === 'function') loadAccessRoleFromCloud();
+        }
       }catch{}
     });
   }
@@ -39,6 +43,13 @@ try {
 
 async function updateAuthUI(){
   const user = await getCurrentUser();
+  // Expose globally for sync UI checks (isCurrentUser, etc)
+  try{ 
+    window.currentUser = user || null; 
+    // Also warm up the cache helpers.js uses, to prevent double-fetch
+    window.__authUserCache = { data: user, ts: Date.now() };
+  }catch{}
+
   // Simple reload-on-login: only when transitioning from logged-out → logged-in within this session
   try{
     const inited = sessionStorage.getItem('auth.init') === '1';
@@ -71,6 +82,13 @@ async function updateAuthUI(){
     logoutBtn?.classList.add('hidden');
     info?.classList.add('hidden');
   }
+  // NEW: Force UI refresh to ensure icons/buttons (isCurrentUser) update immediately
+  try{
+    if (typeof refreshJoinUI === 'function') refreshJoinUI();
+    if (typeof renderAll === 'function') renderAll();
+    else if (typeof renderPlayersList === 'function') renderPlayersList();
+    if (typeof window.reorderMobileControls === 'function') window.reorderMobileControls();
+  }catch{}
 }
 
 // Resolve role dari:
@@ -139,8 +157,15 @@ async function resolveUserRoleAndApply(user){
 
 function ensureAuthButtons(){
   const bar = byId('hdrControls'); if (!bar) return;
-  if (!byId('authInfo')){
-    const span = document.createElement('span'); 
+  const targetParent = (typeof getAdaptiveParent === 'function' ? getAdaptiveParent() : byId('hdrChips')) || bar;
+  
+  let span = byId('authInfo');
+  if (span && span.parentElement !== targetParent) {
+    targetParent.appendChild(span);
+  }
+
+  if (!span){
+    span = document.createElement('span'); 
     span.id='authInfo'; 
     span.className='flex items-center text-sm font-semibold px-3 h-[42px] bg-white/10 backdrop-blur-md rounded-xl border border-white/20 text-white hidden tracking-tight shadow-sm';
     const se = document.createElement('span'); 
@@ -148,7 +173,7 @@ function ensureAuthButtons(){
     se.className='truncate flex-1';
     span.innerHTML = `<span class="opacity-70 mr-1 whitespace-nowrap">${__t('auth.signedIn', 'Signed in: ')}</span>`;
     span.appendChild(se);
-    bar.appendChild(span);
+    targetParent.appendChild(span);
   }
   if (!byId('btnLogin')){
     const b = document.createElement('button'); b.id='btnLogin'; b.className='px-3 h-[42px] rounded-xl bg-white text-indigo-700 font-semibold shadow hover:opacity-90'; b.textContent=__t('login.title', 'Login');

@@ -2,6 +2,21 @@
 // ================== Editor Players Panel Relocation ================== //
 const __epT = (k, f)=> (window.__i18n_get ? __i18n_get(k, f) : f);
 function ensureEditorPlayersSection(){
+  // Don't create section at all for viewers, and remove if exists
+  try{
+    // Use robust check similar to internal helper
+    let viewer = true;
+    if (typeof window.isViewer==='function') viewer = window.isViewer();
+    else if (typeof window.accessRole !== 'undefined') viewer = (window.accessRole !== 'editor' && window.accessRole !== 'owner');
+    else if (typeof accessRole !== 'undefined') viewer = (accessRole !== 'editor' && accessRole !== 'owner');
+    
+    if (viewer) {
+        const existing = document.getElementById('editorPlayersSection');
+        if (existing) existing.remove();
+        return null;
+    }
+  }catch{}
+  
   let host = document.getElementById('editorPlayersSection');
   if (host) return host;
   const main = document.querySelector('main');
@@ -11,7 +26,7 @@ function ensureEditorPlayersSection(){
   // Initial visibility: show for editor on desktop; show on mobile only when tab=jadwal
   let hide = true;
   try{
-    const viewer = (typeof isViewer==='function') ? isViewer() : true;
+    const viewer = (typeof window.isViewer==='function') ? window.isViewer() : true;
     const isMobile = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
     const tab = (typeof window !== 'undefined' && window.__mobileTabKey) ? window.__mobileTabKey : 'jadwal';
     hide = viewer || (isMobile && tab!=='jadwal');
@@ -47,7 +62,14 @@ function relocateEditorPlayersPanel(){
 
 // Keep players panel outside filter toggle on mobile/desktop
 (function ensurePlayersPanelDetachedFromFilter(){
-  function isViewer(){ try{ return typeof window.isViewer==='function' ? window.isViewer() : (window.accessRole!=='editor'); }catch{ return true; } }
+  function isViewer(){ try{ 
+    if (typeof window.isViewer==='function') return window.isViewer();
+    // Fallback: Check global accessRole variable if window.isViewer not yet ready
+    if (typeof window.accessRole !== 'undefined') return window.accessRole !== 'editor' && window.accessRole !== 'owner';
+    if (typeof accessRole !== 'undefined') return accessRole !== 'editor' && accessRole !== 'owner';
+    // Default to true (safe)
+    return true; 
+  }catch{ return true; } }
   function tick(){ if (!isViewer()) try{ relocateEditorPlayersPanel(); }catch{} }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', tick); else tick();
   try{
@@ -105,7 +127,12 @@ function renderViewerPlayersList(){
       g ? badge(g, 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200') : '',
       lv ? badge(lv, 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200') : ''
     ].filter(Boolean).join('');
-    li.innerHTML = `<span class='flex-1 font-semibold'>${escapeHtml(name)}</span><span class='flex gap-1'>${badges}</span>`;
+    
+    // Check match
+    const isMe = (typeof window.isCurrentUser==='function') && window.isCurrentUser(name);
+    const userIcon = isMe ? `<svg class="w-4 h-4 text-indigo-600 inline-block mr-1.5 -mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>` : '';
+    
+    li.innerHTML = `<span class='flex-1 font-semibold'>${userIcon}${escapeHtml(name)}</span><span class='flex gap-1'>${badges}</span>`;
     const paidBadge = document.createElement('span');
     paidBadge.className = 'absolute -bottom-2 right-3 px-2 py-0.5 text-[11px] rounded-full bg-emerald-600 text-white shadow ' + (paid? '' : 'hidden');
     paidBadge.textContent = __epT('players.paid','Sudah bayar');
@@ -152,7 +179,16 @@ function renderViewerPlayersList(){
         const g = meta.gender || ''; const lv = meta.level || '';
         const badge = (txt, cls) => `<span class="text-[10px] px-1.5 py-0.5 rounded ${cls}">${escapeHtml(String(txt))}</span>`;
         const badges = [ g?badge(g,'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200'):'' , lv?badge(lv,'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200'):'' ].filter(Boolean).join('');
-        li.innerHTML = `<span class='flex-1'>${escapeHtml(name)}</span><span class='flex gap-1'>${badges}</span>`;
+        
+        // Check User Indicator
+        let meIcon = '';
+        try {
+          if (typeof window.isCurrentUser === 'function' && window.isCurrentUser(name)){
+             meIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-indigo-500 mr-1 inline-block"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+          }
+        } catch(e){}
+
+        li.innerHTML = `<span class='flex-1 flex items-center gap-1'>${meIcon}<span>${escapeHtml(name)}</span></span><span class='flex gap-1'>${badges}</span>`;
         ulw.appendChild(li);
       });
     }

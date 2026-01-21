@@ -4,6 +4,49 @@ const __hT = (k, f)=> (window.__i18n_get ? __i18n_get(k, f) : f);
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 window.escapeHtml = escapeHtml;
 
+// Helper to check if a player name matches current logged-in user
+window.isCurrentUser = function(name){
+  try {
+    if (!window.sb?.auth) return false;
+    // Try to get user from global sync var (set by auth-core.js) or cache
+    let user = (typeof window.currentUser !== 'undefined') ? window.currentUser : (window.__authUserCache?.data || null);
+    
+    // Fallback: if we just logged in, maybe auth state has it but not yet in variable
+    if (!user && window.__hasUser) { /* best effort, might be missing data */ }
+    
+    // We rely on consistent naming: join-event.js uses full_name or name or email
+    if (!user) return false; 
+    
+    // 1. UID Match (most robust, used by join logic)
+    // Check if global playerMeta exists and has uid
+    try {
+      if (typeof playerMeta === 'object' && playerMeta && playerMeta[name]) {
+         const pUid = playerMeta[name]?.uid;
+         if (pUid && pUid === user.id) return true;
+      }
+    } catch {}
+
+    const target = String(name||'').toLowerCase().trim();
+    if (!target) return false;
+
+    const uName = String(user.user_metadata?.name || user.user_metadata?.full_name || '').toLowerCase().trim();
+    const uEmail = String(user.email || '').toLowerCase().trim();
+    
+    // Debug info
+    // console.log('[isCurrentUser] target:', target, 'uName:', uName, 'uEmail:', uEmail);
+    
+    // Direct match name
+    if (uName && target === uName) return true;
+    // Match email (fallback)
+    if (target === uEmail) return true;
+    // Partial/Split match (e.g. "Ferky" matches "Ferky Sep")
+    if (uName && uName.includes(target)) return true;
+    if (uName && target.includes(uName)) return true;
+    
+    return false;
+  } catch { return false; }
+};
+
 // ================== Helpers ================== //
 // bisa disesuaikan urutannya
 const DEFAULT_PLAYERS_10 = [

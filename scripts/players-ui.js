@@ -32,13 +32,16 @@ function renderPlayersList() {
   players.forEach((name, idx) => {
     const li = document.createElement("li");
     const __paidInit = isPlayerPaid(name);
+    const isMe = (typeof window.isCurrentUser==='function') && window.isCurrentUser(name);
+    const userIcon = isMe ? `<svg class="w-4 h-4 text-indigo-600 inline-block mr-1.5 -mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>` : '';
+
     li.className =
       "relative flex items-center justify-between gap-2 px-3 py-3 rounded-2xl border " +
       (__paidInit ? 'bg-emerald-50 border-emerald-300 dark:bg-emerald-900/20 dark:border-emerald-500'
                   : 'bg-white dark:bg-gray-900 dark:border-gray-700');
     li.innerHTML =
       "<span class='player-name flex-1'>" +
-      escapeHtml(name) +
+      userIcon + escapeHtml(name) +
       "</span><button class='del px-2 py-0.5 text-xs rounded border flex items-center gap-1 bg-emerald-600 text-white border-red-600'>"+t('players.deleteBtn','hapus')+"</button>";
       // === meta mini controls (gender + level)
       const meta = playerMeta[name] || { gender:'', level:'' };
@@ -215,7 +218,14 @@ function renderPlayersList() {
         const badge = (txt, cls) => `<span class="text-[10px] px-1.5 py-0.5 rounded ${cls}">${escapeHtml(String(txt))}</span>`;
         const g = meta.gender||''; const lv = meta.level||'';
         const badges = [ g?badge(g,'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200'):'' , lv?badge(lv,'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200'):'' ].filter(Boolean).join('');
-        li.innerHTML = `<span class='flex-1'>${escapeHtml(name)}</span><span class='flex gap-1'>${badges}</span>`;
+        
+        // Check User Indicator
+        let meIcon = '';
+        if (typeof isCurrentUser === 'function' && isCurrentUser(name)){
+          meIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-indigo-500 mr-1 inline-block" title="It's You!"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+        }
+        
+        li.innerHTML = `<span class='flex-1 flex items-center gap-1'>${meIcon}<span>${escapeHtml(name)}</span></span><span class='flex gap-1'>${badges}</span>`;
         if (!isViewer()){
           const promote = document.createElement('button');
           promote.className = 'px-2 py-0.5 text-xs rounded bg-emerald-600 text-white flex items-center gap-1';

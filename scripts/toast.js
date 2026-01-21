@@ -24,6 +24,7 @@ function showToast(message, type='info'){
 
 async function refreshJoinUI(){
   try{
+    try{ ensureJoinControls?.(); ensureAuthButtons?.(); }catch{}
     const hasEvent = !!currentEventId;
     const joinBtn = byId('btnJoinEvent');
     const statusWrap = byId('joinStatus');
@@ -31,12 +32,17 @@ async function refreshJoinUI(){
     if (!hasEvent){
       joinBtn && joinBtn.classList.add('hidden');
       statusWrap && statusWrap.classList.add('hidden');
+      const btnJoinLeave = byId('btnJoinLeaveEvent');
+      btnJoinLeave && btnJoinLeave.classList.add('hidden');
       return;
     }
-    let user=null; try{ const data = await (window.getAuthUserCached ? getAuthUserCached() : sb.auth.getUser().then(r=>r.data)); user = data?.user || null; }catch{}
+    let user = window.currentUser || null;
+    if (!user) { try{ const data = await (window.getAuthUserCached ? getAuthUserCached() : sb.auth.getUser().then(r=>r.data)); user = data?.user || null; }catch{} }
     if (!user){
-      if (joinBtn) { joinBtn.classList.remove('hidden'); joinBtn.disabled=false; }
+      if (joinBtn) { joinBtn.classList.add('hidden'); }
       statusWrap && statusWrap.classList.add('hidden');
+      const btnJoinLeave = byId('btnJoinLeaveEvent');
+      btnJoinLeave && btnJoinLeave.classList.add('hidden');
       return;
     }
 
@@ -73,6 +79,19 @@ async function refreshJoinUI(){
       joinIconBtn && joinIconBtn.classList.remove('hidden');
       leaveBtn && leaveBtn.classList.add('hidden');
     }
+    
+    // NEW: Update Join/Leave Event button (mobile dedicated button)
+    const btnJoinLeave = byId('btnJoinLeaveEvent');
+    if (btnJoinLeave){
+      btnJoinLeave.classList.remove('hidden');
+      if (found){
+        btnJoinLeave.textContent = __toastT('join.leave','Leave');
+        btnJoinLeave.className = 'px-3 py-2 rounded-xl bg-white text-red-600 font-bold border border-red-200 shadow hover:bg-red-50 transition-colors';
+      } else {
+        btnJoinLeave.textContent = __toastT('join.button','Gabung Event');
+        btnJoinLeave.className = 'px-3 py-2 rounded-xl bg-emerald-600 text-white font-bold shadow hover:opacity-90 transition-opacity';
+      }
+    }
   }catch{}
   // UNTUK BONUS: disable tombol Join jika belum waktunya buka pendaftaran
   // try{
@@ -95,7 +114,12 @@ async function loadAccessRoleFromCloud(){
   window.__roleLoadingBusy = true;
   try{
     showLoading(__toastT('toast.loadingAccess','Memuat akses…'));
-    if (!isCloudMode() || !window.sb?.auth || !currentEventId) { setAccessRole('editor'); return; }
+    // Fix: Check URL param to detect cloud mode intent even if currentEventId not set yet
+    const hasEventParam = (window.location.search && window.location.search.includes('event='));
+    const isCloud = (typeof isCloudMode==='function' && isCloudMode()) || hasEventParam;
+    
+    if (!isCloud) { setAccessRole('editor'); return; } // Truly offline/local
+    if (!currentEventId || !window.sb?.auth) { setAccessRole('viewer'); return; } // Loading / unauth
     const userData = await (window.getAuthUserCached ? getAuthUserCached() : sb.auth.getUser().then(r=>r.data));
     const uid = userData?.user?.id || null;
     if (!uid){ setAccessRole('viewer'); return; }

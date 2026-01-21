@@ -409,6 +409,8 @@
     "rename.levelMissing": { "id": "Mode Level: Lengkapi <b>Level</b> (beg/pro) untuk: {names}.", "en": "Level mode: Fill in <b>Level</b> (beg/pro) for: {names}." },
     "rename.hintMeta": { "id": "Atur di list pemain (dropdown kecil di tiap nama).", "en": "Set it in the players list (small dropdown on each name)." },
     "rename.similar": { "id": "Mirip (cek typo): {pairs}", "en": "Similar (check typos): {pairs}" },
+    "join.leave": { "id": "Keluar Event", "en": "Leave Event" },
+    "join.button": { "id": "Gabung Event", "en": "Join Event" },
     "join.alreadyRegistered": { "id": "Anda sudah terdaftar sebagai", "en": "You are already registered as" },
     "join.waitlistFull": { "id": "List sudah penuh, Anda masuk ke waiting list", "en": "List is full, you were added to the waiting list" },
     "join.closed": { "id": "Pendaftaran ditutup. Hanya member yang bisa join.", "en": "Registration is closed. Only members can join." },

@@ -323,7 +323,11 @@ body {
   }
 
   #hdrControls #btnViewerSearchEvent {
-    order: 997;
+    order: -1;
+    margin-right: 8px;
+    background-color: #4f46e5 !important;
+    /* bg-indigo-600 */
+    color: white !important;
   }
 
   #hdrControls #joinStatus {
@@ -965,7 +969,7 @@ body {
 }
 
 /* ===============================
-   Round card layout (≤ 640px)
+   Round card layout (â‰¤ 640px)
    =============================== */
 @media (max-width:640px) {
   .rnd-table {
@@ -1566,7 +1570,7 @@ body {
   }
 }
 
-/* ===== Join Open (Buka Join) – layout & responsive ===== */
+/* ===== Join Open (Buka Join) â€“ layout & responsive ===== */
 .join-open-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1908,7 +1912,7 @@ input[type="time"].join-open-input {
   }
 }
 
-/* ===== Join Open (Buka Join) – layout & responsive ===== */
+/* ===== Join Open (Buka Join) â€“ layout & responsive ===== */
 .join-open-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2267,4 +2271,83 @@ input[type="time"].join-open-input {
 
 #tsOverlay .score-btn[data-delta="-1"]:hover {
   background-color: #e5e7eb;
+}
+
+
+/* ===========================
+   Adaptive Header - Mobile Overrides
+   Only applies when moved to hdrChips by JS
+   =========================== */
+@media (max-width: 767px) {
+
+  /* Join/Leave button above Logout in controls grid */
+  /* Join/Leave button above Logout in controls grid */
+  #hdrControls #btnJoinLeaveEvent {
+    order: 900;
+    grid-column: auto;
+    /* Allow sharing row */
+  }
+
+  /* Status in Chips Area: Full width grid items */
+  #hdrChips #joinStatus,
+  #hdrChips #authInfo {
+    grid-column: span 2 / span 2;
+    width: 100%;
+    margin-top: 4px;
+    margin-left: 0;
+  }
+
+  /* Shared hidden-on-mobile elements in status bar */
+  #joinStatus #btnJoinEventIcon,
+  #joinStatus #btnLeaveSelf {
+    display: none !important;
+  }
+}
+
+/* Fix Logout positioning on mobile grid */
+@media (max-width: 767px) {
+  #hdrControls #btnLogout {
+    order: 999;
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  #hdrControls #btnAdminLogin {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    order: 1000;
+    /* After logout */
+  }
+}
+
+/* ===========================
+   Mobile Header Layout Redesign
+   =========================== */
+@media (max-width: 767px) {
+
+  /* Join/Leave Event button positioning - above logout */
+  /* Join/Leave Event button positioning - side by side with Share if possible */
+  #hdrControls #btnJoinLeaveEvent {
+    order: 900;
+    grid-column: auto;
+    /* Allow sharing row */
+  }
+
+  /* Hide join icon and leave button in joinStatus on mobile */
+  #joinStatus #btnJoinEventIcon,
+  #joinStatus #btnLeaveSelf {
+    display: none !important;
+  }
+}
+
+/* Ensure joinStatus and authInfo in #hdrChips span full width on mobile */
+@media (max-width: 640px) {
+
+  header #hdrChips #joinStatus,
+  header #hdrChips #authInfo {
+    grid-column: span 2 / span 2;
+    width: 100%;
+    margin-top: 5px;
+  }
 }

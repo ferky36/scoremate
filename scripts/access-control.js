@@ -144,13 +144,18 @@ function applyAccessMode(){
   try{ refreshJoinUI?.(); }catch{}
   // Update role chip indicator
   try{ renderRoleChip?.(); renderWasitBadge?.(); }catch{}
-  // "Cari Event" button visibility (viewer or editor-non-owner)
   try{
-    const vb = byId('btnViewerSearchEvent');
-    if (vb){
-      const showViewerSearch = isViewer() || (!isViewer() && !isOwnerNow());
-      vb.classList.toggle('hidden', !showViewerSearch);
+    // Fix: Ensure correct button visibility based on role immediately
+    const btnCari = byId('btnMakeEventLink');
+    if (btnCari){
+      const viewer = isViewer();
+      // Viewer: Hide Buat/Cari (Share is top primary). Owner: Show.
+      btnCari.classList.toggle('hidden', viewer); 
     }
+    
+    // Legacy: ensure btnViewerSearchEvent is hidden if it exists
+    const vb = byId('btnViewerSearchEvent');
+    // if (vb) vb.classList.add('hidden');
   }catch{}
 
   // Title editor (rename) visibility: only in cloud mode, only for editor
@@ -186,9 +191,15 @@ function applyAccessMode(){
 
   // Move editor players panel out of filter grid into its own section
   try {
-    if (!isViewer()) relocateEditorPlayersPanel();
-    const host = document.getElementById('editorPlayersSection');
-    if (host) host.classList.toggle('hidden', isViewer());
+    if (!isViewer()) {
+      relocateEditorPlayersPanel();
+      const host = document.getElementById('editorPlayersSection');
+      if (host) host.classList.remove('hidden');
+    } else {
+      // If viewer, explicit cleanup: remove the section if it was created previously
+      const host = document.getElementById('editorPlayersSection');
+      if (host) host.remove();
+    }
     // Additionally, ensure the original collapsible wrapper (inside filter grid)
     // is hidden for viewers (owner/editor only). This handles mobile rearrangement too.
     (function ensureHidePlayersWrapperForViewer(){
@@ -217,6 +228,8 @@ function applyAccessMode(){
         }
       }catch{}
     })();
+    // Sync mobile nav visibility when role changes
+    // try{ if (typeof window.enforcePlayersSectionVisibility === 'function') window.enforcePlayersSectionVisibility(); }catch{}
   } catch {}
 
   // As a safety, recompute cash-admin flag after mode changes

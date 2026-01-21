@@ -69,7 +69,8 @@ else init();
 
     // Ensure editor players section (if exists/needed) lives ABOVE section-jadwal
     try{
-      const isView = (typeof isViewer==='function') ? isViewer() : false;
+      // Default to TRUE (viewer) if function missing to be safe
+      const isView = (typeof isViewer==='function') ? isViewer() : true;
       if (!isView) {
         // Move panel out of filter grid into its own section using existing helper
         try{ relocateEditorPlayersPanel?.(); }catch{}
@@ -1007,3 +1008,101 @@ function setupRecapAutoRefresh(host){
 // (layout for filter grid is now handled statically by field creators)
     // Mobile-only toggle to hide header chips (hdrChips) without touching other logic
     try{ initHdrChipsToggleMobile(); }catch{}
+
+// Role-based Layout Reordering
+// function reorderMobileControls(){
+//   if (!isMobile()) return;
+//   const ctrls = document.getElementById('hdrControls');
+//   if (!ctrls) return;
+  
+//   // Identify Role
+//   const isViewerRole = (typeof isViewer==='function') ? isViewer() : true;
+//   // const isOwnerRole = (typeof isOwnerNow==='function') ? isOwnerNow() : (window._isOwnerUser);
+  
+//   // Buttons
+//   const btnCari = document.getElementById('btnMakeEventLink');
+//   const btnLeavePlayer = document.getElementById('btnJoinLeaveEvent'); // The "New" Leave
+//   const btnLogout = document.getElementById('btnLogout');
+//   const btnLeaveEditor = document.getElementById('btnLeaveEvent'); // Old "Keluar Event" (door icon)
+//   const btnShare = document.getElementById('btnShareEvent');
+//   const btnSave = document.getElementById('btnSave');
+//   const btnViewerSearch = document.getElementById('btnViewerSearchEvent'); // Potential duplicate
+  
+//   // Reset styles first
+//   [btnCari, btnLeavePlayer, btnLogout, btnLeaveEditor, btnShare, btnSave, btnViewerSearch].forEach(b=>{
+//     if (b) { b.style.order = ''; b.style.gridColumn = ''; b.style.display = ''; }
+//   });
+
+//   // Always hide the duplicate viewer search button (we use btnCari/btnMakeEventLink for both)
+//   if (btnViewerSearch) btnViewerSearch.style.display = 'none';
+
+//   if (isViewerRole) {
+//     // LAYOUT: 
+//     // 1. Share Event (Full Width) - Corrected based on feedback
+//     // 2. Leave | Logout (Side by side) - Actually user said "Logout full width paling bawah"?
+//     //    User said for Owner: "Logout full width paling bawah".
+//     //    For Viewer: "button cari full width diatas button leave dan logout" -> "cari full width, leave and logout below".
+//     //    Let's keep Leave/Logout side-by-side or stacked? 
+//     //    Previous code: Leave (20), Logout (21). Grid auto + stretch. They share the row?
+//     //    Let's stick to swapping Cari with Share first.
+
+//     // Hide Cari Event (User said: "bukan btnMakeEventLink")
+//     if (btnCari) btnCari.style.display = 'none';
+
+//     if (btnShare){
+//       btnShare.style.order = '10';
+//       btnShare.style.gridColumn = '1 / -1'; // Full width
+//       btnShare.classList.remove('hidden');
+//     }
+    
+//     if (btnLeavePlayer){
+//       btnLeavePlayer.style.order = '20';
+//       btnLeavePlayer.style.gridColumn = 'auto'; 
+//     }
+//     if (btnLogout){
+//       btnLogout.style.order = '21'; 
+//       btnLogout.style.gridColumn = 'auto'; 
+//       btnLogout.style.justifySelf = 'stretch'; 
+//     }
+    
+//     // Ensure others are hidden
+//     if (btnLeaveEditor) btnLeaveEditor.style.display = 'none';
+
+//   } else {
+//     // OWNER / EDITOR LAYOUT
+//     // 1. Simpan | Buat/Cari
+//     // 2. Share | New Leave (Replace "Keluar Event")
+//     // 3. Logout (Full Width Bottom)
+
+//     // Hide Old Leave
+//     if (btnLeaveEditor) btnLeaveEditor.style.display = 'none';
+    
+//     // Explicit ordering
+//     if (btnSave) { btnSave.style.order = '1'; }
+//     if (btnCari) { 
+//       btnCari.style.order = '2'; 
+//       btnCari.style.gridColumn = 'auto'; 
+//       // Owner specific: Green "Buat/Cari Event"
+//       btnCari.classList.remove('bg-indigo-600'); 
+//       btnCari.classList.add('bg-emerald-600');
+//       btnCari.textContent = (window.__i18n_get ? __i18n_get('event.createTitle','Buat/Cari Event') : 'Buat/Cari Event');
+//       if (!btnCari.textContent.includes('🔗')) btnCari.textContent = '🔗 ' + btnCari.textContent;
+//     }
+    
+//     if (btnShare) { btnShare.style.order = '3'; }
+    
+//     if (btnLeavePlayer){
+//         // Replace Keluar Event (Order 4)
+//         btnLeavePlayer.style.order = '4';
+//         btnLeavePlayer.style.gridColumn = 'auto'; 
+//         btnLeavePlayer.style.display = 'inline-flex';
+//         btnLeavePlayer.classList.remove('hidden');
+//     }
+
+//     if (btnLogout){
+//       btnLogout.style.order = '999';
+//       btnLogout.style.gridColumn = '1 / -1'; // Full Width Bottom
+//     }
+//   }
+// }
+// 

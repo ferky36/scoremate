@@ -1,4 +1,4 @@
-﻿{
+{
   "ranking.title": {
     "id": "Global Ranking",
     "en": "Global Ranking"
@@ -969,7 +969,7 @@
   },
   "tennis.finishMatch": {
     "id": "Selesai & Lihat Hasil Pertandingan",
-    "en": "Finish & View Match Result"
+    "en": "Finish & View Match Results"
   },
   "tennis.finishChanges": {
     "id": "Simpan Perubahan",
@@ -989,7 +989,7 @@
   },
   "tennis.status.chooseMode": {
     "id": "Pilih mode skor dan tekan Mulai Pertandingan.",
-    "en": "Choose a scoring mode and press Start Match."
+    "en": "Select scoring mode and press Start Match."
   },
   "tennis.status.inProgress": {
     "id": "Permainan sedang berlangsung...",
@@ -1000,20 +1000,20 @@
     "en": "RALLY mode: Points accumulate until time expires."
   },
   "tennis.rally.finishAt21Label": {
-    "id": "Selesaikan pada 21 poin",
+    "id": "Finish at 21 points",
     "en": "Finish at 21 points"
   },
   "tennis.rally.reached21Title": {
     "id": "Poin Telah Mencapai 21",
-    "en": "Total points reached 21"
+    "en": "Points Reached 21"
   },
   "tennis.rally.reached21": {
     "id": "Poin sudah mencapai 21.",
-    "en": "Total points have reached 21."
+    "en": "Points have reached 21."
   },
   "tennis.rally.continueUntilEnd": {
     "id": "Lanjutkan sampai waktu habis",
-    "en": "Continue until time expires"
+    "en": "Continue until time runs out"
   },
   "tennis.set.scoreLabel": {
     "id": "Total Poin Dimenangkan:",
@@ -1037,19 +1037,19 @@
   },
   "tennis.confirm.close": {
     "id": "Menutup popup akan membatalkan pertandingan yang sedang berlangsung dan mengosongkan skor.",
-    "en": "Closing the popup will cancel the ongoing match and clear the score."
+    "en": "Closing popup will cancel the ongoing match and clear the score."
   },
   "tennis.confirm.reset": {
     "id": "Tindakan ini akan mereset skor pertandingan saat ini.",
-    "en": "This will reset the current match score."
+    "en": "This action will reset the current match score."
   },
   "tennis.confirm.resetZero": {
-    "id": "Tindakan ini akan mereset skor pertandingan saat ini menjadi kosong (0–0).",
-    "en": "This will reset the current match score to 0–0."
+    "id": "Tindakan ini akan mereset skor pertandingan saat ini menjadi kosong (0-0).",
+    "en": "This action will reset current match score to zero (0-0)."
   },
   "tennis.confirm.save": {
     "id": "Skor saat ini akan disimpan sebagai hasil akhir pertandingan.",
-    "en": "The current score will be saved as the final match result."
+    "en": "Current score will be saved as the final match result."
   },
   "tennis.nextMatch": {
     "id": "Lanjut ke Match Berikutnya",
@@ -1088,12 +1088,12 @@
     "en": "Edit"
   },
   "join.leave": {
-    "id": "Leave",
-    "en": "Leave"
+    "id": "Keluar Event",
+    "en": "Leave Event"
   },
   "join.leaveFail": {
-    "id": "Gagal leave:",
-    "en": "Failed to leave:"
+    "id": "Gagal Keluar Event:",
+    "en": "Failed to leave Event:"
   },
   "join.openFirst": {
     "id": "Buka event terlebih dahulu.",
@@ -1741,7 +1741,7 @@
   },
   "tennis.modeLabel": {
     "id": "Pilih Metode Skor:",
-    "en": "Choose Scoring Mode:"
+    "en": "Select Scoring Mode:"
   },
   "tennis.mode.tennis": {
     "id": "Tennis/Padel Score (0, 15, 30, 40)",
@@ -1769,7 +1769,7 @@
   },
   "tennis.confirm.ok": {
     "id": "Ya, Lanjutkan",
-    "en": "Yes, continue"
+    "en": "Yes, Continue"
   },
   "tennis.confirm.desc": {
     "id": "Tindakan ini akan mengakhiri atau mereset skor pertandingan saat ini.",
@@ -1817,11 +1817,11 @@
   },
   "tennis.gameResetNote": {
     "id": "Skor game saat ini akan direset. Server berikutnya adalah ",
-    "en": "Current game score will reset. Next server is "
+    "en": "Current game score will be reset. Next server is "
   },
   "tennis.matchResultTitle": {
     "id": "HASIL AKHIR PERTANDINGAN",
-    "en": "FINAL MATCH RESULT"
+    "en": "MATCH RESULTS"
   },
   "tennis.matchWinnerLabel": {
     "id": "Pemenang Pertandingan:",
@@ -1833,7 +1833,7 @@
   },
   "tennis.eventFinished": {
     "id": "Permainan di event ini sudah selesai.",
-    "en": "All matches in this event are finished."
+    "en": "Games in this event are finished."
   },
   "tennis.scheduledRange": {
     "id": "Terjadwal: {start} - {end}",
@@ -1889,7 +1889,7 @@
   },
   "tennis.confirm.resetTitle": {
     "id": "Yakin Ingin Me-Reset Pertandingan?",
-    "en": "Reset this match?"
+    "en": "Are You Sure You Want to Reset?"
   },
   "tennis.confirm.resetOk": {
     "id": "Ya, Reset Sekarang",
@@ -1897,7 +1897,7 @@
   },
   "tennis.confirm.finishTitle": {
     "id": "Yakin Ingin Menyelesaikan Pertandingan?",
-    "en": "Finish this match?"
+    "en": "Are You Sure You Want to Finish?"
   },
   "tennis.confirm.finishOk": {
     "id": "Ya, Selesaikan Sekarang",
@@ -2627,168 +2627,8 @@
     "id": "Menerapkan pemain akan reset pairing+skor pada lapangan aktif. Lanjutkan?",
     "en": "Applying players will reset pairing+scores on the active court. Continue?"
   },
-  "tennis.overlay.title": {
-    "id": "Penghitung Skor",
-    "en": "Scoreboard"
-  },
-  "tennis.close": {
-    "id": "Tutup",
-    "en": "Close"
-  },
-  "tennis.schedule": {
-    "id": "Waktu Main Terjadwal: -",
-    "en": "Scheduled Play Time: -"
-  },
-  "tennis.modeLabel": {
-    "id": "Pilih Metode Skor:",
-    "en": "Select Scoring Mode:"
-  },
-  "tennis.mode.tennis": {
-    "id": "Tennis/Padel Score (0, 15, 30, 40)",
-    "en": "Tennis/Padel Score (0, 15, 30, 40)"
-  },
-  "tennis.mode.rally": {
-    "id": "Rally Score (Poin Berlanjut)",
-    "en": "Rally Score (Continuous Points)"
-  },
-  "tennis.rally.finishAt21Label": {
-    "id": "Finish at 21 points",
-    "en": "Finish at 21 points"
-  },
-  "tennis.startWithMinutes": {
-    "id": "Mulai Pertandingan ({minutes} Menit)",
-    "en": "Start Match ({minutes} Minutes)"
-  },
-  "tennis.set.gamesLabel": {
-    "id": "Games Dimenangkan (Set):",
-    "en": "Games Won (Set):"
-  },
-  "tennis.teamA": {
-    "id": "Tim A",
-    "en": "Team A"
-  },
-  "tennis.teamB": {
-    "id": "Tim B",
-    "en": "Team B"
-  },
-  "tennis.team": {
-    "id": "Tim",
-    "en": "Team"
-  },
-  "tennis.status.chooseMode": {
-    "id": "Pilih mode skor dan tekan Mulai Pertandingan.",
-    "en": "Select scoring mode and press Start Match."
-  },
-  "tennis.finishMatch": {
-    "id": "Selesai & Lihat Hasil Pertandingan",
-    "en": "Finish & View Match Results"
-  },
-  "tennis.resetZero": {
-    "id": "Reset Skor (0-0)",
-    "en": "Reset Score (0-0)"
-  },
-  "tennis.gameWonTitle": {
-    "id": "GAME DIMENANGKAN!",
-    "en": "GAME WON!"
-  },
-  "tennis.winnerLabel": {
-    "id": "Pemenang:",
-    "en": "Winner:"
-  },
-  "tennis.gameResetNote": {
-    "id": "Skor game saat ini akan direset. Server berikutnya adalah ",
-    "en": "Current game score will be reset. Next server is "
-  },
-  "tennis.startNextGame": {
-    "id": "Mulai Game Berikutnya",
-    "en": "Start Next Game"
-  },
-  "tennis.matchResultTitle": {
-    "id": "HASIL AKHIR PERTANDINGAN",
-    "en": "MATCH RESULTS"
-  },
-  "tennis.finalScoreLabel": {
-    "id": "Total Games",
-    "en": "Total Games"
-  },
-  "tennis.matchWinnerLabel": {
-    "id": "Pemenang Pertandingan:",
-    "en": "Match Winner:"
-  },
-  "tennis.nextMatchTitle": {
-    "id": "Pertandingan Selanjutnya",
-    "en": "Next Match"
-  },
-  "tennis.eventFinished": {
-    "id": "Permainan di event ini sudah selesai.",
-    "en": "Games in this event are finished."
-  },
-  "tennis.newMatch": {
-    "id": "Mulai Pertandingan Baru",
-    "en": "Start New Match"
-  },
-  "tennis.confirm.desc": {
-    "id": "Tindakan ini akan mengakhiri atau mereset skor pertandingan saat ini.",
-    "en": "This action will end or reset the current match score."
-  },
   "tennis.cancel": {
     "id": "Batal",
     "en": "Cancel"
-  },
-  "tennis.confirm.ok": {
-    "id": "Ya, Lanjutkan",
-    "en": "Yes, Continue"
-  },
-  "tennis.confirm.closeTitle": {
-    "id": "Tutup & Batalkan Pertandingan?",
-    "en": "Close & Cancel Match?"
-  },
-  "tennis.confirm.closeOk": {
-    "id": "Ya, Batalkan & Tutup",
-    "en": "Yes, Cancel & Close"
-  },
-  "tennis.confirm.close": {
-    "id": "Menutup popup akan membatalkan pertandingan yang sedang berlangsung dan mengosongkan skor.",
-    "en": "Closing popup will cancel the ongoing match and clear the score."
-  },
-  "tennis.confirm.resetTitle": {
-    "id": "Yakin Ingin Me-Reset Pertandingan?",
-    "en": "Are You Sure You Want to Reset?"
-  },
-  "tennis.confirm.resetOk": {
-    "id": "Ya, Reset Sekarang",
-    "en": "Yes, Reset Now"
-  },
-  "tennis.confirm.reset": {
-    "id": "Tindakan ini akan mereset skor pertandingan saat ini.",
-    "en": "This action will reset the current match score."
-  },
-  "tennis.confirm.resetZero": {
-    "id": "Tindakan ini akan mereset skor pertandingan saat ini menjadi kosong (0-0).",
-    "en": "This action will reset current match score to zero (0-0)."
-  },
-  "tennis.confirm.finishTitle": {
-    "id": "Yakin Ingin Menyelesaikan Pertandingan?",
-    "en": "Are You Sure You Want to Finish?"
-  },
-  "tennis.confirm.finishOk": {
-    "id": "Ya, Selesaikan Sekarang",
-    "en": "Yes, Finish Now"
-  },
-  "tennis.confirm.save": {
-    "id": "Skor saat ini akan disimpan sebagai hasil akhir pertandingan.",
-    "en": "Current score will be saved as the final match result."
-  },
-  "tennis.rally.reached21Title": {
-    "id": "Poin Telah Mencapai 21",
-    "en": "Points Reached 21"
-  },
-  "tennis.rally.reached21": {
-    "id": "Poin sudah mencapai 21.",
-    "en": "Points have reached 21."
-  },
-  "tennis.rally.continueUntilEnd": {
-    "id": "Lanjutkan sampai waktu habis",
-    "en": "Continue until time runs out"
   }
 }

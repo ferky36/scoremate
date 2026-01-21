@@ -112,6 +112,9 @@
               <img src="${avatarUrl}" class="w-full h-full object-cover" onerror="this.src='icons/default-avatar.png'">
             </div>
             <div class="font-semibold group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate max-w-[120px] md:max-w-none">
+              ${(typeof window.isCurrentUser==='function' && window.isCurrentUser(p.display_name)) ? 
+                `<svg class="w-4 h-4 text-indigo-600 inline-block mr-1.5 -mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>` 
+                : ''}
               ${p.display_name}
             </div>
           </div>
