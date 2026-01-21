@@ -404,12 +404,12 @@ function syncPlayersCollapseIcon(){
   const toggle = document.getElementById("playersActionsToggle");
   const actions = document.getElementById("playersActions");
   if (!panel) return;
-  const hidden = panel.classList.contains("hidden");
-  if (arrowDown) arrowDown.classList.toggle("hidden", !hidden);
-  if (arrowUp) arrowUp.classList.toggle("hidden", hidden);
-  if (btn) btn.setAttribute("aria-expanded", String(!hidden));
-  if (toggle) toggle.classList.toggle("hidden", hidden);
-  if (hidden && actions){
+  const isOpen = panel.classList.contains("open");
+  if (arrowDown) arrowDown.classList.toggle("hidden", isOpen);
+  if (arrowUp) arrowUp.classList.toggle("hidden", !isOpen);
+  if (btn) btn.setAttribute("aria-expanded", String(isOpen));
+  if (toggle) toggle.classList.toggle("hidden", !isOpen);
+  if (!isOpen && actions){
     actions.classList.add("hidden");
     actions.classList.remove("flex");
   }
@@ -418,16 +418,36 @@ function syncPlayersCollapseIcon(){
 byId("btnCollapsePlayers")?.addEventListener("click", () => {
   const panel = byId("playersPanel");
   if (!panel) return;
-  panel.classList.toggle("hidden");
+  
+  if (panel.classList.contains("open")) {
+    // Tutup (Collapse)
+    panel.style.height = panel.scrollHeight + "px"; // set eksplisit dulu buat transisi
+    panel.offsetHeight; // force reflow
+    requestAnimationFrame(() => {
+      panel.classList.remove("open");
+      panel.style.height = "0px";
+    });
+  } else {
+    // Buka (Expand)
+    panel.classList.add("open");
+    panel.style.height = (panel.scrollHeight + 40) + "px";
+    // Bersihkan height setelah transisi agar konten bisa bertambah dinamis nantinya
+    setTimeout(() => {
+      if (panel.classList.contains("open")) panel.style.height = "none";
+    }, 450);
+  }
   syncPlayersCollapseIcon();
+  // Dispatch resize agar kontainer induk (seperti filterPanel) melakukan kalkulasi ulang
+  window.dispatchEvent(new Event('resize'));
 });
 
 // Keep icon direction in sync when other scripts toggle the panel
 (function watchPlayersPanel(){
   const panel = byId("playersPanel");
   if (!panel) return;
-  // Default collapsed on load
-  panel.classList.add("hidden");
+  // Default tertutup di awal (accordion mode)
+  panel.classList.remove("open");
+  panel.style.height = "0px";
   syncPlayersCollapseIcon();
   try{
     const mo = new MutationObserver(syncPlayersCollapseIcon);
