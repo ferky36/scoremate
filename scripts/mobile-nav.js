@@ -163,7 +163,9 @@ else init();
     }catch{}
 
     // Hide Match Recap button on mobile (use the tab instead), keep in DOM for builder reuse
-    try{ const rbtn = document.getElementById('btnMatchRecap'); if (rbtn){ const host = rbtn.closest('div')||rbtn; host.style.display='none'; } }catch{}
+    try{ const rbtn = document.getElementById('btnMatchRecap'); 
+      console.log(rbtn);
+      if (rbtn){ const host = rbtn.closest('div')||rbtn; host.style.display='none'; } }catch{}
 
     // Inject compact Klasemen styles for mobile so it scrolls less
     injectMobileKlasemenStyles();

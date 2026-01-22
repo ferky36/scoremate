@@ -125,7 +125,7 @@ const __tsT = (k,f)=> (window.__i18n_get ? __i18n_get(k,f) : f);
   function setStartButtonLabel(){
     try {
       const m = getRoundMinutes();
-      if (startMatchBtn) startMatchBtn.textContent = __tsT('tennis.startWithMinutes','Mulai Pertandingan ({minutes} Menit)').replace('{minutes}', m);
+      if (startMatchBtn) startMatchBtn.textContent = __tsT('tennis.start','Mulai Pertandingan');
     } catch {}
   }
 
@@ -154,7 +154,9 @@ const __tsT = (k,f)=> (window.__i18n_get ? __i18n_get(k,f) : f);
     let $ = (id)=>document.getElementById(id);
     let scoreDisplayT1, scoreDisplayT2, statusMessage, gameWonModal,
       gamesDisplayContainer, gamesDisplayT1, gamesDisplayT2, matchResultsModal, timerDisplayEl, startMatchBtn,
-      player1NameEl, player2NameEl, player3NameEl, player4NameEl, modeSelectorEl, setScoreLabelEl,
+      player1NameEl, player2NameEl, player3NameEl, player4NameEl,
+      player1AvatarEl, player2AvatarEl, player3AvatarEl, player4AvatarEl,
+      modeSelectorEl, setScoreLabelEl,
       actionConfirmModal, confirmActionBtn, confirmModalTitle, confirmModalDesc, currentPendingAction, tsTitleEl,
       tsScheduleEl, matchWinnerNamesEl, nextMatchInfoEl, nextMatchPlayersEl, nextMatchTimeEl,
       nextMatchSummaryEl, nextMatchSummaryPlayersEl, nextMatchSummaryTimeEl,
@@ -179,6 +181,10 @@ const __tsT = (k,f)=> (window.__i18n_get ? __i18n_get(k,f) : f);
     player2NameEl = $("player-2-name");
     player3NameEl = $("player-3-name");
     player4NameEl = $("player-4-name");
+    player1AvatarEl = $("player-1-avatar");
+    player2AvatarEl = $("player-2-avatar");
+    player3AvatarEl = $("player-3-avatar");
+    player4AvatarEl = $("player-4-avatar");
     serveBadgeEls = {};
     document.querySelectorAll('#tsOverlay [data-serve-player]').forEach(el=>{
       const pid = parseInt(el.getAttribute('data-serve-player'),10);
@@ -287,6 +293,7 @@ const __tsT = (k,f)=> (window.__i18n_get ? __i18n_get(k,f) : f);
     if (newMode !== state.scoringMode){
       state.scoringMode = newMode;
       resetMatch(true, true);
+      try{ updateNextMatchInfo(); }catch{}
     }
   }
   // REFACTORED: formatTime now imported from tennis-utils.js
@@ -721,7 +728,6 @@ function confirmAction(){
     state.timerSeconds = getRoundMinutes()*60;
     state.isMatchRunning = true;
     startMatchBtn.textContent = __tsT('tennis.resetMatch','Reset Pertandingan');
-    startMatchBtn.classList.remove('bg-indigo-600','hover:bg-indigo-700','shadow-indigo-500/50');
     startMatchBtn.classList.add('bg-red-600','hover:bg-red-700','shadow-red-500/50');
 
     // Mark startedAt on round if available
@@ -767,6 +773,7 @@ function confirmAction(){
       updateDisplay();
     }, 1000);
     try{ wakeLockManager.request(); }catch{}
+    try{ updateNextMatchInfo(tsCtx.court, tsCtx.round); }catch{}
     updateDisplay();
   }
 
@@ -1405,6 +1412,19 @@ function confirmAction(){
       if (player2NameEl) player2NameEl.textContent = p2 || '-';
       if (player3NameEl) player3NameEl.textContent = p3 || '-';
       if (player4NameEl) player4NameEl.textContent = p4 || '-';
+
+      const updateAv = (el, name) => {
+        if (!el) return;
+        const defaultAv = 'icons/default-avatar.png';
+        const avUrl = (window.__PLAYER_AVATARS && name) ? (window.__PLAYER_AVATARS[name] || defaultAv) : defaultAv;
+        el.src = avUrl;
+        el.onerror = () => { el.src = defaultAv; };
+      };
+      updateAv(player1AvatarEl, p1);
+      updateAv(player2AvatarEl, p2);
+      updateAv(player3AvatarEl, p3);
+      updateAv(player4AvatarEl, p4);
+
       playerDetails[1].name = p1 || 'P1';
       playerDetails[2].name = p2 || 'P2';
       playerDetails[3].name = p3 || 'P3';
@@ -1458,7 +1478,11 @@ function confirmAction(){
         state.gamesT1 = Number(r.scoreA || 0); state.gamesT2 = Number(r.scoreB || 0); state.pendingClearScore = false;
         // Hide start button and set timer text
         if (startMatchBtn) startMatchBtn.classList.add('hidden');
-        if (timerDisplayEl) timerDisplayEl.textContent = __tsT('tennis.matchDone','Permainan Selesai');
+        if (timerDisplayEl) {
+          timerDisplayEl.textContent = __tsT('tennis.matchDone','Permainan Selesai');
+          // No longer using col-span as we have a fixed grid now
+          timerDisplayEl.classList.add('is-done');
+        }
         if (finishBtnEl) finishBtnEl.textContent = __tsT('tennis.finishChanges','Simpan Perubahan');
         try{ if (statusMessage) statusMessage.classList.add('hidden'); }catch{}
         try{ if (forceResetBtnEl) forceResetBtnEl.classList.remove('hidden'); }catch{}
@@ -1486,12 +1510,16 @@ function confirmAction(){
           }
         }catch{}
         if (startMatchBtn) startMatchBtn.classList.remove('hidden');
+        if (timerDisplayEl) {
+          timerDisplayEl.classList.remove('is-done');
+        }
         if (finishBtnEl) finishBtnEl.textContent = __tsT('tennis.finishMatch','Selesai & Lihat Hasil Pertandingan');
         try{ if (statusMessage) statusMessage.classList.remove('hidden'); }catch{}
         try{ if (forceResetBtnEl) forceResetBtnEl.classList.add('hidden'); }catch{}
       }
     }catch{}
     fillPlayersFromRound(courtIdx, roundIdx);
+    try{ updateNextMatchInfo(courtIdx, roundIdx); }catch{}
     // Ensure rally checkbox state is consistent on open (updateDisplay will also handle it)
     try{
       const cb = window.__rallyFinishCheckbox;
