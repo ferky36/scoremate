@@ -1,4 +1,4 @@
-/* Service Worker: layered caching strategy for mix-americano */
+/* Service Worker: layered caching strategy for scoremate */
 const APP_VERSION = '2025-11-27';
 const STATIC_CACHE = 'mixam-static-' + APP_VERSION;
 const HTML_CACHE   = 'mixam-html-'   + APP_VERSION;

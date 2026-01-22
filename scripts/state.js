@@ -6,7 +6,7 @@ let players = [];
 let currentMaxPlayers = null; // null = unlimited; otherwise positive integer
 let dirty=false, autosaveTimer=null;
 let store = { sessions:{}, lastTs:null };
-const THEME_KEY='mix-americano-theme';
+const THEME_KEY='scoremate-theme';
 let playerMeta = {}; // { "Nama": { gender:"M"|"F"|"", level:"beg"|"pro"|"" }, ... }
 const SCORE_MAXLEN = 2; // ubah ke 3 kalau perlu
 let scoreCtx = {

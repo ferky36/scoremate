@@ -27,7 +27,7 @@
     const SUPABASE_ANON = window.__SUPABASE_ANON;
     const sb = (SUPABASE_URL && SUPABASE_ANON) ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
 
-    const START_URL = '/mix-americano/'; // arahkan kembali ke halaman utama PWA (GitHub Pages scope)
+    const START_URL = '/scoremate/'; // arahkan kembali ke halaman utama PWA (GitHub Pages scope)
 
     function qs(name){ return new URLSearchParams(location.search).get(name); }
     function hs(name){ return new URLSearchParams(location.hash.slice(1)).get(name); }
