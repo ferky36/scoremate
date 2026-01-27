@@ -166,8 +166,9 @@ function initCloudFromUrl() {
   _forceViewer = (String(p.view||'') === '1') || (String(p.role||'').toLowerCase() === 'viewer');
   // Mode khusus: viewer boleh hitung skor jika ?view=1
   window._viewerScoreOnly = (String(p.view||'') === '1');
-  // Don't force viewer if user is owner - owner always gets editor access
-  if (_forceViewer && !isOwnerNow()) {
+  // Don't force viewer if there's an event ID - let loadAccessRoleFromCloud determine the role
+  // This allows owner detection to work properly since _isOwnerUser is set later
+  if (_forceViewer && !currentEventId) {
     setAccessRole('viewer');
   }
 

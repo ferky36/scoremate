@@ -136,8 +136,27 @@ async function loadAccessRoleFromCloud(){
         ownerId = ev?.owner_id || null; try{ if (ownerId) window.setEventMetaCache?.(currentEventId, { ...(window.getEventMetaCache?.(currentEventId)||{}), owner_id: ownerId }); }catch{}
       }
       const isEventOwner = !!(ownerId && ownerId === uid);
-      if (isEventOwner) { setAccessRole('editor'); roleDebug('event-owner=true -> editor full'); return; }
-    }catch{}
+      if (isEventOwner) { 
+        window._isOwnerUser = true; 
+        setAccessRole('editor'); 
+        roleDebug('event-owner=true -> editor full'); 
+        return; 
+      }
+
+      // 1b) CHECK GLOBAL USER_ROLES TABLE
+      // If not event creator, check if they are a specific GLOBAL owner/admin
+      const { data: gr } = await sb.from('user_roles').select('role').eq('user_id', uid).maybeSingle();
+      if (gr && (gr.role === 'owner')) {
+        window._isOwnerUser = true;
+        // Also ensure they are considered cash admin
+        // window._isCashAdmin = true;
+        setAccessRole('editor');
+        roleDebug(`global-role=${gr.role} -> editor full`);
+        return;
+      }
+    }catch(err){ 
+      console.warn('[loadAccessRoleFromCloud] Owner/Global check failed:', err); 
+    }
 
     // 2) membership check
     const memRoleRaw = await (window.getMemberRoleCached ? getMemberRoleCached(currentEventId) : (async()=>{

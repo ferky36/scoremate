@@ -83,7 +83,12 @@ async function syncPaidToCashflow(name, paid){
       let ok = false;
       try{
         const { error: rpcErr } = await sb.rpc('add_paid_income', { p_event_id: currentEventId, p_label: name, p_amount: amount>0?amount:0, p_pax: 1 });
-        if (!rpcErr) ok = true; else console.warn('add_paid_income RPC error', rpcErr);
+        if (!rpcErr) ok = true; 
+        else {
+          // 42501 (policy violation) is expected for Global Owners since RPC might enforce strict Event Owner check.
+          // We will fallback to direct table operation which usually works.
+          if (rpcErr.code !== '42501') console.warn('add_paid_income RPC error', rpcErr);
+        }
       }catch{}
       if (!ok){
         // Fallback direct upsert via client if policy allows
@@ -106,7 +111,11 @@ async function syncPaidToCashflow(name, paid){
       let ok = false;
       try{
         const { error: rpcErr } = await sb.rpc('remove_paid_income', { p_event_id: currentEventId, p_label: name });
-        if (!rpcErr) ok = true; else console.warn('remove_paid_income RPC error', rpcErr);
+        if (!rpcErr) ok = true; 
+        else {
+           // Suppress known policy error for Global Owners
+           if (rpcErr.code !== '42501') console.warn('remove_paid_income RPC error', rpcErr);
+        }
       }catch{}
       if (!ok){
         await sb.from('event_cashflows')
