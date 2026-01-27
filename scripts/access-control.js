@@ -30,7 +30,13 @@ function isCashAdmin(){
   try { if (typeof isOwnerNow === 'function' && isOwnerNow()) return true; } catch {}
   return !!window._isCashAdmin;
 }
-function setAccessRole(role){ accessRole = (role === 'viewer') ? 'viewer' : 'editor'; applyAccessMode(); renderAll?.(); renderPlayersList?.(); renderViewerPlayersList?.(); }
+function setAccessRole(role){ 
+  accessRole = (role === 'viewer') ? 'viewer' : 'editor'; 
+  applyAccessMode(); 
+  if (typeof renderAll === 'function') renderAll();
+  if (typeof renderPlayersList === 'function') renderPlayersList();
+  if (typeof renderViewerPlayersList === 'function') renderViewerPlayersList();
+}
 function applyAccessMode(){
   document.documentElement.setAttribute('data-readonly', String(isViewer()));
   const disableIds = ['btnAddCourt','btnMakeEventLink','btnShareEvent','btnApplyPlayersActive','btnResetActive','btnClearScoresActive'];

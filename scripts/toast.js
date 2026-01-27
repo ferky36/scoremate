@@ -119,7 +119,8 @@ async function loadAccessRoleFromCloud(){
     const isCloud = (typeof isCloudMode==='function' && isCloudMode()) || hasEventParam;
     
     if (!isCloud) { setAccessRole('editor'); return; } // Truly offline/local
-    if (!currentEventId || !window.sb?.auth) { setAccessRole('viewer'); return; } // Loading / unauth
+    // Don't set to viewer prematurely - wait until we know the actual role
+    if (!currentEventId || !window.sb?.auth) { return; } // Loading / unauth - keep default
     const userData = await (window.getAuthUserCached ? getAuthUserCached() : sb.auth.getUser().then(r=>r.data));
     const uid = userData?.user?.id || null;
     if (!uid){ setAccessRole('viewer'); return; }

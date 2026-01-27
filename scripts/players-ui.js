@@ -28,6 +28,8 @@ async function askYN(msg){
 
 function renderPlayersList() {
   const ul = byId("playersList");
+  if (!ul) return; // Element might not exist yet
+  
   ul.innerHTML = "";
   players.forEach((name, idx) => {
     const li = document.createElement("li");

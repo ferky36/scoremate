@@ -166,7 +166,10 @@ function initCloudFromUrl() {
   _forceViewer = (String(p.view||'') === '1') || (String(p.role||'').toLowerCase() === 'viewer');
   // Mode khusus: viewer boleh hitung skor jika ?view=1
   window._viewerScoreOnly = (String(p.view||'') === '1');
-  if (_forceViewer) setAccessRole('viewer');
+  // Don't force viewer if user is owner - owner always gets editor access
+  if (_forceViewer && !isOwnerNow()) {
+    setAccessRole('viewer');
+  }
 
   // Load access role if in cloud mode (skip elevation if forced viewer)
   if (currentEventId && !_forceViewer) {
