@@ -71,14 +71,14 @@ async function updateAuthUI(){
   if (user){
     // Otomatiskan akses editor berdasarkan metadata / tabel user_roles (tanpa owner=yes di URL)
     await resolveUserRoleAndApply(user);
-    loginBtn?.classList.add('hidden'); byId('btnAdminLogin')?.classList.add('hidden');
+    loginBtn?.classList.add('hidden');
     logoutBtn?.classList.remove('hidden');
     info?.classList.remove('hidden');
     if (email) email.textContent = user.email || user.id;
   } else {
     try{ window.__hasUser = false; }catch{}
     try{ if (typeof accessRole==='undefined' || accessRole!=='viewer') setAccessRole?.('viewer'); }catch{}
-    loginBtn?.classList.remove('hidden'); byId('btnAdminLogin')?.classList.remove('hidden');
+    loginBtn?.classList.remove('hidden');
     logoutBtn?.classList.add('hidden');
     info?.classList.add('hidden');
   }
@@ -179,7 +179,12 @@ function ensureAuthButtons(){
     const b = document.createElement('button'); b.id='btnLogin'; b.className='px-3 h-[42px] rounded-xl bg-white text-indigo-700 font-semibold shadow hover:opacity-90'; b.textContent=__t('login.title', 'Login');
     bar.appendChild(b);
     b.addEventListener('click', ()=>{
-      const m = byId('loginModal'); if (!m) return; m.classList.remove('hidden');
+      const m = byId('loginModal'); if (!m) return; 
+      m.classList.remove('hidden');
+      // Reset state
+      const s1 = byId('loginFormSection'); if (s1) s1.classList.remove('hidden');
+      const s2 = byId('forgotPasswordSection'); if (s2) s2.classList.add('hidden');
+      const msg = byId('loginMsg'); if (msg) msg.textContent = '';
       try{ sb.auth.getUser().then(({data})=>{ if (data?.user?.email) byId('loginEmail').value = data.user.email; }); }catch{}
     });
   }
@@ -188,12 +193,5 @@ function ensureAuthButtons(){
     bar.appendChild(b);
     b.addEventListener('click', async ()=>{ try{ await sb.auth.signOut(); }catch{} location.reload(); });
   }
-  if (!byId('btnAdminLogin')){
-    const b = document.createElement('button'); b.id='btnAdminLogin'; b.className='px-3 h-[42px] rounded-xl bg-white text-indigo-700 font-semibold shadow hover:opacity-90'; b.textContent=__t('admin.button', 'Login as Administrator');
-    bar.appendChild(b);
-    b.addEventListener('click', ()=>{
-      const m = byId('adminLoginModal'); if (!m) return; m.classList.remove('hidden');
-      try{ sb.auth.getUser().then(({data})=>{ if (data?.user?.email) byId('adminEmail').value = data.user.email; }); }catch{}
-    });
-  }
+
 }

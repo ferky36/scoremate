@@ -378,6 +378,10 @@ let __editNameCtx = null;
 let editNameModalEl=null, editNameInputEl=null, editGenderSelectEl=null, editLevelSelectEl=null,
     editNameMsgEl=null, editNameTitleEl=null, editNameMetaRowEl=null;
 
+// Password Change Elements
+let editPassLinkEl=null, editPassFormEl=null, editNameFormEl=null;
+let editNewPassEl=null, editConfirmPassEl=null, editPassOkBtn=null, editPassCancelBtn=null;
+
 function ensureEditNameModal(){
   if (editNameModalEl) return;
   const div = document.createElement('div');
@@ -387,32 +391,59 @@ function ensureEditNameModal(){
     <div class="absolute inset-0 bg-black/40" id="editNameBackdrop"></div>
     <div class="relative mx-auto mt-20 w-[92%] max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow p-4 md:p-6 border dark:border-gray-700">
       <h3 id="editNameTitle" class="text-base md:text-lg font-semibold mb-3">${__joinT('join.editTitle','Ubah Nama')}</h3>
-      <div id="editNameInputRow">
-        <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">${__joinT('join.nameLabel','Nama Tampilan')}</label>
-        <input id="editNameInput" type="text" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
-      </div>
-      <div id="editNameMetaRow" class="grid grid-cols-2 gap-3 mt-3">
-        <div>
-          <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">${__joinT('join.gender','Gender')}</label>
-          <select id="editGenderSelect" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
-            <option value="">${__joinT('join.genderPlaceholder','-')}</option>
-            <option value="M">M</option>
-            <option value="F">F</option>
-          </select>
+      
+      <!-- NAME EDIT FORM -->
+      <div id="editNameForm">
+        <div id="editNameInputRow">
+          <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">${__joinT('join.nameLabel','Nama Tampilan')}</label>
+          <input id="editNameInput" type="text" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
         </div>
-        <div>
-          <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">${__joinT('join.level','Level')}</label>
-          <select id="editLevelSelect" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
-            <option value="">${__joinT('join.levelPlaceholder','-')}</option>
-            <option value="beg">beg</option>
-            <option value="pro">pro</option>
-          </select>
+        <div id="editNameMetaRow" class="grid grid-cols-2 gap-3 mt-3">
+          <div>
+            <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">${__joinT('join.gender','Gender')}</label>
+            <select id="editGenderSelect" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
+              <option value="">${__joinT('join.genderPlaceholder','-')}</option>
+              <option value="M">M</option>
+              <option value="F">F</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">${__joinT('join.level','Level')}</label>
+            <select id="editLevelSelect" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
+              <option value="">${__joinT('join.levelPlaceholder','-')}</option>
+              <option value="beg">beg</option>
+              <option value="pro">pro</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Change Password Link -->
+        <div class="mt-4 text-right">
+           <button id="btnEditShowPass" class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline hidden">${__joinT('join.changePassLink','Ubah Password?')}</button>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-4">
+          <button id="editNameOk" class="px-3 py-2 rounded-xl bg-indigo-600 text-white">${__joinT('join.save','Simpan')}</button>
+          <button id="editNameCancel" class="px-3 py-2 rounded-xl border dark:border-gray-700">${__joinT('join.cancel','Batal')}</button>
         </div>
       </div>
-      <div class="flex justify-end gap-3 mt-4">
-        <button id="editNameOk" class="px-3 py-2 rounded-xl bg-indigo-600 text-white">${__joinT('join.save','Simpan')}</button>
-        <button id="editNameCancel" class="px-3 py-2 rounded-xl border dark:border-gray-700">${__joinT('join.cancel','Batal')}</button>
+
+      <!-- PASSWORD CHANGE FORM (Hidden) -->
+      <div id="editPassForm" class="hidden space-y-3">
+         <div>
+           <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">${__joinT('join.newPassLabel','Password Baru')}</label>
+           <input id="editNewPass" type="password" placeholder="${__joinT('join.newPassPlaceholder','Min 6 huruf & angka')}" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
+         </div>
+         <div>
+           <label class="block text-[11px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-300">${__joinT('join.confirmPassLabel','Konfirmasi Password')}</label>
+           <input id="editConfirmPass" type="password" placeholder="${__joinT('join.confirmPassPlaceholder','Ulangi password')}" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
+         </div>
+         <div class="flex justify-end gap-3 mt-4">
+           <button id="editPassSave" class="px-3 py-2 rounded-xl bg-red-600 text-white font-semibold">${__joinT('join.savePassBtn','Simpan Password')}</button>
+           <button id="editPassCancel" class="px-3 py-2 rounded-xl border dark:border-gray-700">${__joinT('join.backBtn','Kembali')}</button>
+         </div>
       </div>
+
       <div id="editNameMsg" class="text-xs mt-2"></div>
     </div>`;
   document.body.appendChild(div);
@@ -423,10 +454,38 @@ function ensureEditNameModal(){
   editNameMsgEl = byId('editNameMsg');
   editNameTitleEl = byId('editNameTitle');
   editNameMetaRowEl = byId('editNameMetaRow');
+  
+  // New Elements
+  editNameFormEl = byId('editNameForm');
+  editPassFormEl = byId('editPassForm');
+  editPassLinkEl = byId('btnEditShowPass');
+  editNewPassEl = byId('editNewPass');
+  editConfirmPassEl = byId('editConfirmPass');
+  editPassOkBtn = byId('editPassSave');
+  editPassCancelBtn = byId('editPassCancel');
+
   byId('editNameBackdrop').addEventListener('click', hideEditNameModal);
   byId('editNameCancel').addEventListener('click', hideEditNameModal);
   byId('editNameOk').addEventListener('click', submitEditNameModal);
   editNameInputEl.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ e.preventDefault(); submitEditNameModal(); } });
+
+  // Password Listeners
+  editPassLinkEl.addEventListener('click', ()=>{
+     editNameFormEl.classList.add('hidden');
+     editPassFormEl.classList.remove('hidden');
+     editNameTitleEl.textContent = __joinT('join.changePassLink','Ubah Password?').replace('?','');
+     editNameMsgEl.textContent = '';
+     if(editNewPassEl) editNewPassEl.focus();
+  });
+  
+  editPassCancelBtn.addEventListener('click', ()=>{
+     editPassFormEl.classList.add('hidden');
+     editNameFormEl.classList.remove('hidden');
+     editNameTitleEl.textContent = __editNameCtx?.title || __joinT('join.editTitle','Ubah Nama');
+     editNameMsgEl.textContent = '';
+  });
+
+  editPassOkBtn.addEventListener('click', submitChangePassword);
 }
 
 function openEditNameModal(ctx){
@@ -438,7 +497,23 @@ function openEditNameModal(ctx){
   const allowName = ctx?.allowName !== false; 
   const g = ctx?.initialGender || '';
   const lv = ctx?.initialLevel || '';
+  
+  // Reset Views
+  editNameFormEl.classList.remove('hidden');
+  editPassFormEl.classList.add('hidden');
+  
   if (editNameTitleEl) editNameTitleEl.textContent = title;
+  
+  // Show/Hide Change Pass Link (Only for self edit)
+  if (editPassLinkEl) {
+    if (ctx.mode === 'self') editPassLinkEl.classList.remove('hidden');
+    else editPassLinkEl.classList.add('hidden');
+  }
+
+  // Clear Pass Inputs
+  if(editNewPassEl) editNewPassEl.value='';
+  if(editConfirmPassEl) editConfirmPassEl.value='';
+
   if (editNameInputEl){
     editNameInputEl.value = initial;
     if (allowName){
@@ -457,6 +532,52 @@ function openEditNameModal(ctx){
 function hideEditNameModal(){
   if (editNameModalEl) editNameModalEl.classList.add('hidden');
   __editNameCtx = null;
+}
+
+// Submits Password Change
+async function submitChangePassword(){
+  const p1 = (editNewPassEl?.value||'').trim();
+  const p2 = (editConfirmPassEl?.value||'').trim();
+  const msg = editNameMsgEl;
+  
+  msg.textContent=''; msg.className='text-xs mt-2';
+
+  if (!p1 || p1.length < 6){
+     msg.textContent = __joinT('join.passMinLen','Password minimal 6 karakter.');
+     msg.className = 'text-xs mt-2 text-red-600 dark:text-red-400';
+     return;
+  }
+  // Alphanumeric check (Letter AND Number)
+  if (!/[a-zA-Z]/.test(p1) || !/[0-9]/.test(p1)){
+     msg.textContent = __joinT('join.passAlphanum','Password harus mengandung huruf dan angka.');
+     msg.className = 'text-xs mt-2 text-red-600 dark:text-red-400';
+     return;
+  }
+
+  if (p1 !== p2){
+     msg.textContent = __joinT('join.passMismatch','Konfirmasi password tidak cocok.');
+     msg.className = 'text-xs mt-2 text-red-600 dark:text-red-400';
+     return;
+  }
+
+  try{
+    editPassOkBtn.disabled=true; editPassOkBtn.textContent=__authT('auth.processing','Memproses...'); // reuse common
+    
+    // Update Password via Supabase
+    const { data, error } = await sb.auth.updateUser({ password: p1 });
+    
+    if (error) throw error;
+    
+    showToast?.(__joinT('join.passSuccess','Password berhasil diubah.'), 'success');
+    hideEditNameModal();
+    
+  }catch(e){
+    console.warn(e);
+    msg.textContent = __joinT('join.passFail','Gagal mengubah password:') + ' ' + (e.message||e);
+    msg.className = 'text-xs mt-2 text-red-600 dark:text-red-400';
+  } finally {
+    editPassOkBtn.disabled=false; editPassOkBtn.textContent=__joinT('join.savePassBtn','Simpan Password');
+  }
 }
 
 async function editSelfNameFlow(){

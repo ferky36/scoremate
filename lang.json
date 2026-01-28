@@ -775,6 +775,10 @@
     "id": "Kirim Link Login",
     "en": "Send Login Link"
   },
+  "login.forgot": {
+    "id": "Lupa Password?",
+    "en": "Forgot Password?"
+  },
   "admin.title": {
     "id": "Administrator Login",
     "en": "Administrator Login"
@@ -1970,6 +1974,150 @@
   "tennis.confirm.finishOk": {
     "id": "Ya, Selesaikan Sekarang",
     "en": "Yes, Finish Now"
+  },
+  "login.descPw": {
+    "id": "Masukkan email dan password Anda.",
+    "en": "Please enter your email and password."
+  },
+  "login.resetDesc": {
+    "id": "Masukkan email user dan password baru untuk di-reset.",
+    "en": "Enter user email and new password to reset."
+  },
+  "login.resetNewPassPlaceholder": {
+    "id": "Password Baru",
+    "en": "New Password"
+  },
+  "login.resetBtn": {
+    "id": "Reset Password",
+    "en": "Reset Password"
+  },
+  "login.adminLink": {
+    "id": "Force reset password (administrator only)",
+    "en": "Force reset password (administrator only)"
+  },
+  "login.backToLogin": {
+    "id": "Kembali Login",
+    "en": "Back to Login"
+  },
+  "auth.adminVerifyTitle": {
+    "id": "Admin Login",
+    "en": "Admin Login"
+  },
+  "auth.adminVerifyDesc": {
+    "id": "Verifikasi admin sebelum reset user.",
+    "en": "Verify admin before resetting user."
+  },
+  "auth.adminEmailPlaceholder": {
+    "id": "Email Admin",
+    "en": "Admin Email"
+  },
+  "auth.adminPassPlaceholder": {
+    "id": "Password Admin",
+    "en": "Admin Password"
+  },
+  "auth.verifyBtn": {
+    "id": "Verifikasi & Lanjut",
+    "en": "Verify & Continue"
+  },
+  "auth.forceTitle": {
+    "id": "Force Reset User Password",
+    "en": "Force Reset User Password"
+  },
+  "auth.adminActiveLabel": {
+    "id": "Admin aktif:",
+    "en": "Active Admin:"
+  },
+  "auth.targetEmailPlaceholder": {
+    "id": "Email User Target",
+    "en": "Target User Email"
+  },
+  "auth.targetPassPlaceholder": {
+    "id": "Password Baru untuk User",
+    "en": "New Password for User"
+  },
+  "auth.forceResetBtn": {
+    "id": "Force Reset Password",
+    "en": "Force Reset Password"
+  },
+  "auth.logoutAdminBtn": {
+    "id": "Logout Admin",
+    "en": "Logout Admin"
+  },
+  "auth.verifying": {
+    "id": "Verifikasi...",
+    "en": "Verifying..."
+  },
+  "auth.credsRequired": {
+    "id": "Email & Password admin wajib diisi.",
+    "en": "Admin Email & Password are required."
+  },
+  "auth.notAdmin": {
+    "id": "Akses ditolak. Hanya Owner yang bisa akses.",
+    "en": "Access denied. Owners only."
+  },
+  "auth.adminVerified": {
+    "id": "Mode Admin Aktif. Silakan reset user.",
+    "en": "Admin Mode Active. Please reset user."
+  },
+  "auth.userNotFound": {
+    "id": "Email tidak ditemukan.",
+    "en": "Email not found."
+  },
+  "auth.forceSuccess": {
+    "id": "Password berhasil diubah.",
+    "en": "Password successfully changed."
+  },
+  "auth.forceFail": {
+    "id": "Gagal mengubah password:",
+    "en": "Failed to change password:"
+  },
+  "join.changePassLink": {
+    "id": "Ubah Password?",
+    "en": "Change Password?"
+  },
+  "join.newPassLabel": {
+    "id": "Password Baru",
+    "en": "New Password"
+  },
+  "join.newPassPlaceholder": {
+    "id": "Min 6 huruf & angka",
+    "en": "Min 6 chars & numbers"
+  },
+  "join.confirmPassLabel": {
+    "id": "Konfirmasi Password",
+    "en": "Confirm Password"
+  },
+  "join.confirmPassPlaceholder": {
+    "id": "Ulangi password",
+    "en": "Repeat password"
+  },
+  "join.savePassBtn": {
+    "id": "Simpan Password",
+    "en": "Save Password"
+  },
+  "join.backBtn": {
+    "id": "Kembali",
+    "en": "Back"
+  },
+  "join.passMinLen": {
+    "id": "Password minimal 6 karakter.",
+    "en": "Password must be at least 6 chars."
+  },
+  "join.passAlphanum": {
+    "id": "Password harus mengandung huruf dan angka.",
+    "en": "Password must contain letters and numbers."
+  },
+  "join.passMismatch": {
+    "id": "Konfirmasi password tidak cocok.",
+    "en": "Passwords do not match."
+  },
+  "join.passSuccess": {
+    "id": "Password berhasil diubah.",
+    "en": "Password successfully changed."
+  },
+  "join.passFail": {
+    "id": "Gagal mengubah password:",
+    "en": "Failed to change password:"
   },
   "fairness.lapMatch": {
     "id": "Lap {court}/Match {round}",
