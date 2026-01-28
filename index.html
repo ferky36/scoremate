@@ -718,13 +718,10 @@
       <div id="forgotPasswordSection" class="space-y-3 hidden">
          <!-- Standard View -->
          <div id="forgotStandardView">
-             <div class="text-sm text-gray-600 dark:text-gray-300" data-i18n="login.resetDesc">Masukkan email user dan password baru untuk di-reset.</div>
+             <div class="text-sm text-gray-600 dark:text-gray-300" data-i18n="login.resetDesc">Masukkan email yang terdaftar. Link reset password akan dikirim ke email.</div>
              <input id="forgotEmail" type="email" placeholder="email@example.com" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
              
-             <!-- NEW: Direct Password Input -->
-             <input id="forgotNewPass" type="password" data-i18n-placeholder="login.resetNewPassPlaceholder" placeholder="Password Baru" class="mt-1 border rounded-xl px-3 py-2 w-full bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
-    
-             <button id="forgotSubmitBtn" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200" data-i18n="login.resetBtn">Reset Password</button>
+             <button id="forgotSubmitBtn" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200" data-i18n="login.resetSubmit">Kirim Password Baru ke Email</button>
              
              <div class="mt-2 text-center">
                  <button id="btnSwitchToForceContext" class="text-xs text-indigo-600 hover:text-indigo-500" data-i18n="login.adminLink">Force reset password (administrator only)</button>

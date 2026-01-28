@@ -759,10 +759,11 @@
     "tennis.confirm.finishOk": { "id": "Ya, Selesaikan Sekarang", "en": "Yes, Finish Now" },
 
     "login.descPw": { "id": "Masukkan email dan password Anda.", "en": "Please enter your email and password." },
-    "login.resetDesc": { "id": "Masukkan email user dan password baru untuk di-reset.", "en": "Enter user email and new password to reset." },
+    "login.resetDesc": { "id": "Masukkan email yang terdaftar. Link reset password akan dikirim ke email.", "en": "Enter your registered email. A password reset link will be sent to your email." },
+    "login.resetSubmit": { "id": "Kirim Password Baru ke Email", "en": "Send New Password to Email" },
     "login.resetNewPassPlaceholder": { "id": "Password Baru", "en": "New Password" },
     "login.resetBtn": { "id": "Reset Password", "en": "Reset Password" },
-    "login.adminLink": { "id": "Force reset password (administrator only)", "en": "Force reset password (administrator only)" },
+    "login.adminLink": { "id": "Paksa Reset Password (Hanya Admin)", "en": "Force reset password (administrator only)" },
     "login.backToLogin": { "id": "Kembali Login", "en": "Back to Login" },
     "login.forgot": { "id": "Lupa Password?", "en": "Forgot Password?" },
     "auth.adminVerifyTitle": { "id": "Admin Login", "en": "Admin Login" },

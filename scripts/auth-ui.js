@@ -255,7 +255,7 @@ byId('forgotSubmitBtn')?.addEventListener('click', async ()=>{
     msg.textContent=__authT('auth.error','Terjadi kesalahan.');
     msg.className='text-xs text-red-600 dark:text-red-400';
   } finally {
-    btn.disabled=false; btn.textContent=__authT('login.reset','Kirim Password Baru ke Email');
+    btn.disabled=false; btn.textContent=__authT('login.resetSubmit','Kirim Password Baru ke Email');
   }
 });
 
