@@ -24,7 +24,7 @@ byId('loginSubmitBtn')?.addEventListener('click', async ()=>{
   const btn   = byId('loginSubmitBtn'); 
   const msg   = byId('loginMsg');
   
-  if (msg){ msg.textContent=''; msg.className='text-xs text-gray-500 dark:text-gray-300'; }
+  if (msg){ msg.textContent=''; msg.className='text-xs text-red-600 dark:text-red-400'; }
   
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { 
     if(msg) msg.textContent=__authT('auth.emailInvalid','Email tidak valid.'); 
@@ -57,6 +57,54 @@ byId('loginSubmitBtn')?.addEventListener('click', async ()=>{
     } 
   } finally{ 
     if (btn){ btn.disabled=false; btn.textContent=__authT('login.submit','Login'); } 
+  }
+});
+
+// Magic Link Login
+byId('loginMagicBtn')?.addEventListener('click', async ()=>{
+  const email = (byId('loginEmail')?.value||'').trim();
+  const btn = byId('loginMagicBtn');
+  const msg = byId('loginMsg');
+  
+  msg.textContent = ''; msg.className = 'text-xs text-gray-500';
+  
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { 
+    msg.textContent=__authT('auth.magicLinkEmailInvalid','Masukkan email yang valid untuk menerima magic link.'); 
+    msg.className='text-xs text-red-600 dark:text-red-400';
+    return; 
+  }
+
+  try {
+    btn.disabled = true; 
+    const originalText = btn.innerHTML;
+    btn.textContent = __authT('auth.sending','Mengirim…');
+    
+    // Use signInWithOtp for Magic Link
+    const { error } = await sb.auth.signInWithOtp({ 
+      email, 
+      options: { 
+        emailRedirectTo: (typeof getAuthRedirectURL === 'function' ? getAuthRedirectURL() : window.location.origin + '/auth-callback.html'),
+        shouldCreateUser: true 
+      } 
+    });
+
+    if (error) {
+      msg.textContent = __authT('auth.magicLinkError','Gagal mengirim link. Coba lagi.') + ' ' + error.message;
+      msg.className = 'text-xs text-red-600 dark:text-red-400';
+    } else {
+      msg.textContent = __authT('auth.magicLinkSent','Link login telah dikirim! Periksa email Anda.');
+      msg.className = 'text-xs text-green-600 dark:text-green-400 font-semibold';
+      // Optional: highlight the message
+      if (byId('loginPass')) byId('loginPass').classList.add('hidden');
+      if (byId('loginSubmitBtn')) byId('loginSubmitBtn').classList.add('hidden');
+    }
+  } catch(e) {
+    console.error('Magic link failed', e);
+    msg.textContent = __authT('auth.error','Terjadi kesalahan.');
+    msg.className = 'text-xs text-red-600 dark:text-red-400';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = __authT('login.magicLinkBtn', 'Login via Magic Link');
   }
 });
 
@@ -262,6 +310,8 @@ byId('forgotSubmitBtn')?.addEventListener('click', async ()=>{
 function resetLoginModalState(){
   byId('loginFormSection')?.classList.remove('hidden');
   byId('forgotPasswordSection')?.classList.add('hidden');
+  byId('loginPass')?.classList.remove('hidden');
+  byId('loginSubmitBtn')?.classList.remove('hidden');
   if(byId('loginMsg')) byId('loginMsg').textContent='';
   if(byId('forgotMsg')) byId('forgotMsg').textContent='';
 }

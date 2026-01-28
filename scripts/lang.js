@@ -204,6 +204,7 @@
     "auth.signedIn": { "id": "Signed in: ", "en": "Signed in: " },
     "auth.processingLogin": { "id": "Memproses login…", "en": "Processing login…" },
     "auth.emailInvalid": { "id": "Email tidak valid.", "en": "Invalid email." },
+    "auth.magicLinkEmailInvalid": { "id": "Masukkan email yang valid untuk menerima magic link.", "en": "Enter a valid email to receive the magic link." },
     "auth.send": { "id": "Kirim Link Login", "en": "Send Login Link" },
     "auth.sending": { "id": "Mengirim…", "en": "Sending…" },
     "auth.sendSuccess": { "id": "Cek email Anda untuk magic link.", "en": "Check your email for the magic link." },
@@ -759,6 +760,8 @@
     "tennis.confirm.finishOk": { "id": "Ya, Selesaikan Sekarang", "en": "Yes, Finish Now" },
 
     "login.descPw": { "id": "Masukkan email dan password Anda.", "en": "Please enter your email and password." },
+    "login.or": { "id": "atau", "en": "or" },
+    "login.magicLinkBtn": { "id": "Login via Magic Link", "en": "Login via Magic Link" },
     "login.resetDesc": { "id": "Masukkan email yang terdaftar. Link reset password akan dikirim ke email.", "en": "Enter your registered email. A password reset link will be sent to your email." },
     "login.resetSubmit": { "id": "Kirim Password Baru ke Email", "en": "Send New Password to Email" },
     "login.resetNewPassPlaceholder": { "id": "Password Baru", "en": "New Password" },

@@ -819,6 +819,10 @@
     "id": "Email tidak valid.",
     "en": "Invalid email."
   },
+  "auth.magicLinkEmailInvalid": {
+    "id": "Masukkan email yang valid untuk menerima magic link.",
+    "en": "Enter a valid email to receive the magic link."
+  },
   "auth.send": {
     "id": "Kirim Link Login",
     "en": "Send Login Link"
@@ -1979,6 +1983,14 @@
     "id": "Masukkan email dan password Anda.",
     "en": "Please enter your email and password."
   },
+  "login.or": {
+    "id": "atau",
+    "en": "or"
+  },
+  "login.magicLinkBtn": {
+    "id": "Login via Magic Link",
+    "en": "Login via Magic Link"
+  },
   "login.resetDesc": {
     "id": "Masukkan email yang terdaftar. Link reset password akan dikirim ke email.",
     "en": "Enter your registered email. A password reset link will be sent to your email."
@@ -2046,6 +2058,14 @@
   "auth.logoutAdminBtn": {
     "id": "Logout Admin",
     "en": "Logout Admin"
+  },
+  "auth.magicLinkSent": {
+    "id": "Link login telah dikirim! Periksa email Anda.",
+    "en": "Login link sent! Check your email."
+  },
+  "auth.magicLinkError": {
+    "id": "Gagal mengirim link. Coba lagi.",
+    "en": "Failed to send link. Try again."
   },
   "auth.verifying": {
     "id": "Verifikasi...",
