@@ -114,13 +114,10 @@ async function loadAccessRoleFromCloud(){
   window.__roleLoadingBusy = true;
   try{
     showLoading(__toastT('toast.loadingAccess','Memuat akses…'));
-    // Fix: Check URL param to detect cloud mode intent even if currentEventId not set yet
-    const hasEventParam = (window.location.search && window.location.search.includes('event='));
-    const isCloud = (typeof isCloudMode==='function' && isCloudMode()) || hasEventParam;
+    const isCloud = (typeof isCloudMode==='function' && isCloudMode());
     
     if (!isCloud) { setAccessRole('editor'); return; } // Truly offline/local
-    // Don't set to viewer prematurely - wait until we know the actual role
-    if (!currentEventId || !window.sb?.auth) { return; } // Loading / unauth - keep default
+    if (!currentEventId || !window.sb?.auth || !isUuid(currentEventId)) { return; } // Loading / unauth - keep default
     const userData = await (window.getAuthUserCached ? getAuthUserCached() : sb.auth.getUser().then(r=>r.data));
     const uid = userData?.user?.id || null;
     if (!uid){ setAccessRole('viewer'); return; }
@@ -187,7 +184,7 @@ async function loadAccessRoleFromCloud(){
 // Compute cash-admin flag even if UI stays viewer (e.g., forced viewer via URL)
 async function ensureCashAdminFlag(){
   try{
-    if (!isCloudMode() || !window.sb?.auth || !currentEventId) return;
+    if (!isCloudMode() || !window.sb?.auth || !currentEventId || !isUuid(currentEventId)) return;
     const userData = await (window.getAuthUserCached ? getAuthUserCached() : sb.auth.getUser().then(r=>r.data));
     const uid = userData?.user?.id || null;
     if (!uid) return;
@@ -214,6 +211,7 @@ async function ensureCashAdminFlag(){
 }
 
 async function fetchEventTitleFromDB(eventId){
+  if (!eventId || !isUuid(eventId)) return null;
   try{
     showLoading(__toastT('toast.loadingTitle','Memuat judul event…'));
     const { data, error } = await sb
@@ -233,6 +231,7 @@ async function fetchEventTitleFromDB(eventId){
 
 // Load state (JSONB) sekali saat buka/refresh
 async function loadStateFromCloud() {
+  if (!currentEventId || !isUuid(currentEventId)) return false;
   showLoading(__toastT('toast.loadingState','Memuat data dari Cloud…'));
   const { data, error } = await sb.from('event_states')
     .select('state, version, updated_at')
@@ -269,7 +268,7 @@ async function saveStateToCloud() {
     // Lock: prevent saving to a different date than the event's original date
     try{
       const locked = window.__lockedEventDateKey || '';
-      if (isCloudMode() && currentEventId && locked && locked !== currentSessionDate){
+      if (isCloudMode() && currentEventId && isUuid(currentEventId) && locked && locked !== currentSessionDate){
         showToast?.(__toastT('toast.dateLocked','Tanggal event tidak boleh diubah. Buat event baru untuk tanggal berbeda.'), 'error');
         try{ leaveEventMode?.(true); }catch{}
         return false;
@@ -321,7 +320,7 @@ async function saveStateToCloud() {
 
 // Realtime subscribe untuk row event+date aktif
 function subscribeRealtimeForState(){
-  if (!isCloudMode()) return;
+  if (!isCloudMode() || !isUuid(currentEventId)) return;
   // Pastikan kanal lama dibersihkan agar tidak dobel callback
   try{ if (_stateRealtimeChannel){ _stateRealtimeChannel.unsubscribe?.(); try{ sb.removeChannel?.(_stateRealtimeChannel); }catch{} _stateRealtimeChannel=null; } }catch{}
 
@@ -412,6 +411,7 @@ function subscribeRealtimeForState(){
 
 // Versi tanpa overlay/loading untuk panggilan realtime agar tidak "flash" satu halaman
 async function loadStateFromCloudSilent() {
+  if (!currentEventId || !isUuid(currentEventId)) return false;
   try{ if (window.__suppressCloudUntil && Date.now() < window.__suppressCloudUntil) return false; }catch{}
   const { data, error } = await sb.from('event_states')
     .select('state, version, updated_at')

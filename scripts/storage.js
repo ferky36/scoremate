@@ -27,13 +27,17 @@ let _stateRealtimeChannel = null;   // Supabase Realtime channel for event_state
 
 function getUrlParams() {
   const url = new URL(location.href);
+  const get = (k) => {
+    const val = url.searchParams.get(k);
+    return (val === 'null') ? null : val;
+  };
   return {
-    event: url.searchParams.get('event') || null,
-    date:  url.searchParams.get('date')  || null,
-    role:  url.searchParams.get('role')  || null,
-    view:  url.searchParams.get('view')  || null,
-    owner: url.searchParams.get('owner') || null,
-    invite: url.searchParams.get('invite') || null,
+    event: get('event'),
+    date:  get('date'),
+    role:  get('role'),
+    view:  get('view'),
+    owner: get('owner'),
+    invite: get('invite'),
   };
 }
 

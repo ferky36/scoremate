@@ -154,8 +154,10 @@ function maybeAutoSaveCloud(useLoading=false){
 
 function initCloudFromUrl() {
   const p = getUrlParams();           // fungsi yang sudah kamu punya
-  if (p.event) {
+  if (p.event && isUuid(p.event)) {
     currentEventId = p.event;
+  } else {
+    currentEventId = null;
   }
   if (p.date) {
     currentSessionDate = p.date;

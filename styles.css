@@ -2121,13 +2121,13 @@ input[type="time"].join-open-input {
 
 /* ===== Dark mode polish for Tennis Score overlay ===== */
 .dark #tsOverlay .relative {
-  background-color: #0f172a;
+  /* background-color: #0f172a; */
   /* slate-900 (softer) */
   color: #e5e7eb;
   /* slate-200 text */
   border-color: #243044;
   /* custom soft border */
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  /* box-shadow: 0 10px 30px rgba(0, 0, 0, .35); */
 }
 
 .dark #tsTitle {
@@ -2407,6 +2407,7 @@ input[type="time"].join-open-input {
     margin-top: 5px;
   }
 }
+
 /* Floating Fullscreen Toggle */
 
 /* Collapsible Floating Fullscreen Toggle */
@@ -2440,6 +2441,7 @@ input[type="time"].join-open-input {
     right: 12px;
     bottom: 90px;
   }
+
   #fsFloatingWrap.is-collapsed {
     transform: translateX(calc(100% - 8px));
   }

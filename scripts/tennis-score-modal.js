@@ -1142,7 +1142,7 @@ function confirmAction(){
               if (!nextBtn){
                 nextBtn = document.createElement('button');
                 nextBtn.id = 'next-match-btn';
-                nextBtn.className = 'w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black rounded-2xl shadow-xl shadow-emerald-500/30 transition active:scale-[0.98] uppercase tracking-wider mb-2';
+                nextBtn.className = 'w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-xl shadow-emerald-500/30 transition active:scale-[0.98] uppercase tracking-wider mb-2';
                 nextBtn.textContent = __tsT('tennis.nextMatch','Lanjut ke Match Berikutnya');
                 if (closeBtn && closeBtn.parentNode){
                   closeBtn.parentNode.insertBefore(nextBtn, closeBtn);
@@ -1180,14 +1180,13 @@ function confirmAction(){
               finishNote.classList.add('hidden');
             }
 
-            // 2. Handle "Tidak, nanti dulu" / "Tutup" button
             if (closeBtn){
-              if (hasNext) {
+              if (canProceed) {
                 closeBtn.textContent = __tsT('tennis.notNow','Tidak, nanti dulu');
-                closeBtn.className = 'w-full py-4 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 font-bold rounded-2xl hover:text-gray-900 dark:hover:text-white transition uppercase tracking-wider text-xs';
+                closeBtn.className = 'w-full py-3 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 font-bold rounded-xl hover:text-gray-900 dark:hover:text-white transition uppercase tracking-wider text-[10px]';
               } else {
                 closeBtn.textContent = __tsT('tennis.close','Tutup');
-                closeBtn.className = 'w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-[#0f172a] font-black rounded-2xl transition hover:opacity-90 active:scale-[0.98] uppercase tracking-widest';
+                closeBtn.className = 'w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-[#0f172a] font-black rounded-xl transition hover:opacity-90 active:scale-[0.98] uppercase tracking-widest text-xs';
               }
             }
 
@@ -1197,7 +1196,7 @@ function confirmAction(){
                 if (!showTop3Btn){
                   showTop3Btn = document.createElement('button');
                   showTop3Btn.id = 'show-top3-btn';
-                  showTop3Btn.className = 'w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black rounded-2xl shadow-xl shadow-indigo-500/30 transition active:scale-[0.98] uppercase tracking-wider mb-3';
+                  showTop3Btn.className = 'w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black rounded-xl shadow-xl shadow-indigo-500/30 transition active:scale-[0.98] uppercase tracking-wider mb-2';
                   showTop3Btn.textContent = __tsT('tennis.showTop3','Tampilkan Pemenang');
                   if (closeBtn && closeBtn.parentNode){
                     closeBtn.parentNode.insertBefore(showTop3Btn, closeBtn);
