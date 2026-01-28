@@ -1127,17 +1127,9 @@
     "id": "Skor saat ini akan disimpan sebagai hasil akhir pertandingan.",
     "en": "Current score will be saved as the final match result."
   },
-  "tennis.nextMatch": {
-    "id": "Lanjut ke Match Berikutnya",
-    "en": "Next Match"
-  },
   "tennis.close": {
     "id": "Tutup",
     "en": "Close"
-  },
-  "tennis.notNow": {
-    "id": "Tidak, nanti dulu",
-    "en": "Not now"
   },
   "join.button": {
     "id": "Gabung Event",
@@ -1894,6 +1886,14 @@
   "tennis.gameResetNote": {
     "id": "Skor game saat ini akan direset. Server berikutnya adalah ",
     "en": "Current game score will be reset. Next server is "
+  },
+  "tennis.nextMatch": {
+    "id": "Lanjut ke Match Berikutnya",
+    "en": "Proceed to Next Match"
+  },
+  "tennis.notNow": {
+    "id": "Tidak, nanti dulu",
+    "en": "No, not now"
   },
   "tennis.matchResultTitle": {
     "id": "HASIL AKHIR PERTANDINGAN",

@@ -587,6 +587,7 @@ function showConfirmationModal(actionType, opts){
       titleText = __tsT('tennis.confirm.finishTitle','Yakin Ingin Menyelesaikan Pertandingan?');
       buttonText = __tsT('tennis.confirm.finishOk','Ya, Selesaikan Sekarang');
       if (confirmModalDesc) confirmModalDesc.textContent = __tsT('tennis.confirm.save','Skor saat ini akan disimpan sebagai hasil akhir pertandingan.');
+      try{ const cancelBtn = $("cancel-action-btn"); if (cancelBtn) cancelBtn.textContent = __tsT('tennis.notNow','Tidak, nanti dulu'); }catch{}
     }
     else if (actionType==='finish21'){
       titleText = __tsT('tennis.rally.reached21Title','Poin Telah Mencapai 21');
@@ -1126,82 +1127,105 @@ function confirmAction(){
         // Post-finish actions: add Next Match button (normal mode only) and restyle close button
         try {
           if (!state.isRecalcMode && matchResultsModal){
-            const modalBox = matchResultsModal.querySelector('.bg-white.rounded-xl');
+            // Match the box inside the results modal (rounded-[3rem] or rounded-3xl)
+            const modalBox = matchResultsModal.querySelector('.bg-white') || matchResultsModal.querySelector('div > div');
             const closeBtn = modalBox?.querySelector('#new-match-btn');
-            // Ensure next button exists and wired
+            const c = tsCtx.court||0; const next = (tsCtx.round||0)+1;
+            const courtArr = roundsByCourt?.[c]||[];
+            const hasNext = !!courtArr[next];
+            const nextMatchPlayers = courtArr[next] ? (courtArr[next].a1 && courtArr[next].a2 && courtArr[next].b1 && courtArr[next].b2) : false;
+            const canProceed = hasNext && nextMatchPlayers;
+
+            // 1. Handle "Next Match" button
             let nextBtn = modalBox?.querySelector('#next-match-btn');
-            if (!nextBtn){
-              nextBtn = document.createElement('button');
-              nextBtn.id = 'next-match-btn';
-              nextBtn.className = 'w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg';
-              nextBtn.textContent = __tsT('tennis.nextMatch','Lanjut ke Match Berikutnya');
-              if (closeBtn && closeBtn.parentNode){
-                closeBtn.parentNode.insertBefore(nextBtn, closeBtn);
-                const spacer = document.createElement('div'); spacer.className = 'h-3'; closeBtn.parentNode.insertBefore(spacer, closeBtn);
-              } else if (modalBox){
-                modalBox.appendChild(nextBtn);
+            if (canProceed) {
+              if (!nextBtn){
+                nextBtn = document.createElement('button');
+                nextBtn.id = 'next-match-btn';
+                nextBtn.className = 'w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black rounded-2xl shadow-xl shadow-emerald-500/30 transition active:scale-[0.98] uppercase tracking-wider mb-2';
+                nextBtn.textContent = __tsT('tennis.nextMatch','Lanjut ke Match Berikutnya');
+                if (closeBtn && closeBtn.parentNode){
+                  closeBtn.parentNode.insertBefore(nextBtn, closeBtn);
+                  const spacer = document.createElement('div'); spacer.className = 'h-3'; closeBtn.parentNode.insertBefore(spacer, closeBtn);
+                } else if (modalBox){
+                  modalBox.appendChild(nextBtn);
+                }
               }
-              nextBtn.addEventListener('click', async ()=>{
+              // Always refresh onclick to capture latest c/next (closure fix)
+              nextBtn.onclick = async ()=>{
                 try{ if (typeof loadStateFromCloudSilent==='function') await loadStateFromCloudSilent(); }catch{}
                 try{
-                  const c = tsCtx.court||0; const next = (tsCtx.round||0)+1;
-                  const courtArr = roundsByCourt?.[c]||[];
-                  if (!courtArr[next]){ tsShowToast(__tsT('tennis.noNextMatch','Tidak ada match berikutnya di lapangan ini'), 'warning'); return; }
                   if (matchResultsModal) { matchResultsModal.classList.add('hidden'); matchResultsModal.classList.remove('flex'); }
-                  openScoreModal(c, next);
-                }catch{}
-              });
+                  if (typeof window.openScoreModal === 'function') window.openScoreModal(c, next);
+                }catch(e){ console.error('Next match navigation failed', e); }
+              };
+              nextBtn.classList.remove('hidden');
+            } else if (nextBtn) {
+              nextBtn.classList.add('hidden');
             }
-            // Restyle close button to gray + label
+
+            // 1b. Event Finished Note
+            let finishNote = modalBox?.querySelector('#event-finished-note');
+            if (!canProceed) {
+              if (!finishNote) {
+                finishNote = document.createElement('div');
+                finishNote.id = 'event-finished-note';
+                finishNote.className = 'mb-6 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-800/20 text-indigo-600 dark:text-indigo-400 text-sm font-bold';
+                if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.insertBefore(finishNote, closeBtn);
+                else if (modalBox) modalBox.appendChild(finishNote);
+              }
+              finishNote.textContent = __tsT('tennis.eventFinished','Permainan di event ini sudah selesai.');
+              finishNote.classList.remove('hidden');
+            } else if (finishNote) {
+              finishNote.classList.add('hidden');
+            }
+
+            // 2. Handle "Tidak, nanti dulu" / "Tutup" button
             if (closeBtn){
-              // Determine if there is a next match; if none, show only a single close button
-              const c = tsCtx.court||0; const next = (tsCtx.round||0)+1;
-              const courtArr = roundsByCourt?.[c]||[];
-              const hasNext = !!courtArr[next];
-              const nb = modalBox?.querySelector('#next-match-btn');
-              const note = modalBox?.querySelector('#event-finished-note');
-              if (!hasNext){
-                if (nb) nb.classList.add('hidden');
-                closeBtn.textContent = __tsT('tennis.close','Tutup');
-                closeBtn.className = 'w-full py-3 bg-gray-300 hover:bg-gray-400 text-gray-900 font-semibold rounded-lg';
-                if (note) note.classList.remove('hidden');
-                // Add "Tampilkan Pemenang" button only for the last match
-                try{
-                  let showTop3Btn = modalBox.querySelector('#show-top3-btn');
-                  if (!showTop3Btn){
-                    showTop3Btn = document.createElement('button');
-                    showTop3Btn.id = 'show-top3-btn';
-                    showTop3Btn.className = 'w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg';
-                    showTop3Btn.textContent = __tsT('tennis.showTop3','Tampilkan Pemenang');
-                    if (closeBtn && closeBtn.parentNode){
-                      closeBtn.parentNode.insertBefore(showTop3Btn, closeBtn);
-                      const spacer2 = document.createElement('div'); spacer2.className = 'h-2'; closeBtn.parentNode.insertBefore(spacer2, closeBtn);
-                    } else { modalBox.appendChild(showTop3Btn); }
-                    showTop3Btn.addEventListener('click', ()=>{
-                      try{ hideOverlay(); }catch{}
-                      // small delay to allow modal close to render before opening inline podium modal
-                      setTimeout(()=>{
-                        try{
-                          // Prefer reading the rendered standings table (DOM) rather than recomputing.
-                          let standingsData = null;
-                          try{ const domData = getStandingsFromDom(); if (Array.isArray(domData) && domData.length) standingsData = domData; }catch{}
-                          try{ if (!standingsData && Array.isArray(window.standings) && window.standings.length) standingsData = window.standings; }catch{}
-                          // If no DOM or global standings present, open modal with empty array (do not recalc here).
-                          openTop3InlineModal(standingsData || []);
-                        }catch{}
-                      }, 120);
-                    });
-                  }
-                }catch{}
-              } else {
-                if (nb) nb.classList.remove('hidden');
+              if (hasNext) {
                 closeBtn.textContent = __tsT('tennis.notNow','Tidak, nanti dulu');
-                closeBtn.className = 'w-full py-3 bg-gray-300 hover:bg-gray-400 text-gray-900 font-semibold rounded-lg';
-                if (note) note.classList.add('hidden');
+                closeBtn.className = 'w-full py-4 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 font-bold rounded-2xl hover:text-gray-900 dark:hover:text-white transition uppercase tracking-wider text-xs';
+              } else {
+                closeBtn.textContent = __tsT('tennis.close','Tutup');
+                closeBtn.className = 'w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-[#0f172a] font-black rounded-2xl transition hover:opacity-90 active:scale-[0.98] uppercase tracking-widest';
               }
             }
+
+            // 3. Handle "Show Top 3" button (Last match only)
+            if (!hasNext) {
+                let showTop3Btn = modalBox?.querySelector('#show-top3-btn');
+                if (!showTop3Btn){
+                  showTop3Btn = document.createElement('button');
+                  showTop3Btn.id = 'show-top3-btn';
+                  showTop3Btn.className = 'w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black rounded-2xl shadow-xl shadow-indigo-500/30 transition active:scale-[0.98] uppercase tracking-wider mb-3';
+                  showTop3Btn.textContent = __tsT('tennis.showTop3','Tampilkan Pemenang');
+                  if (closeBtn && closeBtn.parentNode){
+                    closeBtn.parentNode.insertBefore(showTop3Btn, closeBtn);
+                    const spacer2 = document.createElement('div'); spacer2.className = 'h-3'; closeBtn.parentNode.insertBefore(spacer2, closeBtn);
+                  } else { modalBox?.appendChild(showTop3Btn); }
+                  showTop3Btn.addEventListener('click', ()=>{
+                    try{ hideOverlay(); }catch{}
+                    setTimeout(()=>{
+                      try{
+                        let standingsData = null;
+                        try{ const domData = getStandingsFromDom(); if (Array.isArray(domData) && domData.length) standingsData = domData; }catch{}
+                        try{ if (!standingsData && Array.isArray(window.standings) && window.standings.length) standingsData = window.standings; }catch{}
+                        openTop3InlineModal(standingsData || []);
+                      }catch{}
+                    }, 120);
+                  });
+                } else {
+                  showTop3Btn.classList.remove('hidden');
+                }
+            } else {
+               const st3 = modalBox?.querySelector('#show-top3-btn');
+               if (st3) st3.classList.add('hidden');
+            }
           }
-        } catch {}
+        } catch (e) {
+          console.warn('Enhance match results failed', e);
+        }
+
       }
     }catch{}
     updateDisplay();
@@ -1534,7 +1558,8 @@ function confirmAction(){
         }catch{}
       }
     }catch{}
-    showOverlay(); updateDisplay();
+    showOverlay(); 
+    updateDisplay();
   };
   window.closeScoreModal = function(){ hideOverlay(); };
 })();
